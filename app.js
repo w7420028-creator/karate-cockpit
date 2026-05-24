@@ -280,6 +280,68 @@ function latestWeight() {
   return log?.weight || state.weight || "";
 }
 
+function numericWeight(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = Number(String(value).replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function weightTrend(logs) {
+  const points = logs
+    .filter(log => numericWeight(log.weight) !== null)
+    .map(log => ({ date: new Date(log.date), value: numericWeight(log.weight) }))
+    .sort((a, b) => a.date - b.date);
+  const latest = points.at(-1)?.value ?? numericWeight(state.weight);
+  const recent = points.filter(point => Date.now() - point.date.getTime() <= 30 * 24 * 60 * 60 * 1000);
+  const basis = recent.length >= 2 ? recent : points;
+  const delta = basis.length >= 2 ? basis.at(-1).value - basis[0].value : null;
+  return {
+    latest: latest === null || latest === undefined ? "" : latest.toFixed(1),
+    delta: delta === null ? "—" : `${delta >= 0 ? "+" : ""}${delta.toFixed(1)} kg`,
+    count: points.length
+  };
+}
+
+function averagePain(logs, limit = 7) {
+  const sample = logs.filter(log => log.pain).slice(0, limit);
+  if (!sample.length) return maxPain();
+  return sample.reduce((sum, log) => sum + maxPain(log.pain), 0) / sample.length;
+}
+
+function averageEnergy(logs, limit = 7) {
+  const values = logs.map(log => Number(log.energy)).filter(value => Number.isFinite(value) && value > 0).slice(0, limit);
+  if (!values.length) return Number.isFinite(Number(state.energy)) ? Number(state.energy) : null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function readinessStats(logs, days = 14) {
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  const sample = logs.filter(log => new Date(log.date).getTime() >= cutoff);
+  return sample.reduce((acc, log) => {
+    const key = String(log.readiness || "").toLowerCase();
+    if (key in acc) acc[key] += 1;
+    return acc;
+  }, { green: 0, yellow: 0, red: 0 });
+}
+
+function painDirection(logs) {
+  const values = logs.filter(log => log.pain).slice(0, 8).map(log => maxPain(log.pain));
+  if (values.length < 4) return "—";
+  const recent = values.slice(0, Math.ceil(values.length / 2)).reduce((a, b) => a + b, 0) / Math.ceil(values.length / 2);
+  const olderValues = values.slice(Math.ceil(values.length / 2));
+  const older = olderValues.reduce((a, b) => a + b, 0) / olderValues.length;
+  if (recent >= older + 1) return "up";
+  if (recent <= older - 1) return "down";
+  return "stable";
+}
+
+function coachDecision({ avgPain, avgEnergy, completed, readiness }) {
+  if (readiness.red > 0 || avgPain >= 4) return { level: "red", text: "Protect tissue next. No plyos, no hard sparring, reduce load." };
+  if ((avgEnergy !== null && avgEnergy <= 4) || avgPain >= 3 || readiness.yellow >= 2) return { level: "yellow", text: "Hold or reduce. Keep karate technical and choose minimum versions." };
+  if (completed >= 3 && avgPain < 3 && (avgEnergy === null || avgEnergy >= 6)) return { level: "green", text: "Stable week. Progress one variable only — never volume, speed, and intensity together." };
+  return { level: "yellow", text: "Not enough signal yet. Keep the plan easy and collect clean data." };
+}
+
 
 function renderPainSliders() {
   const labels = [
@@ -305,31 +367,53 @@ function renderProgress() {
   const last14 = logs.filter(log => Date.now() - new Date(log.date).getTime() <= 14 * 24 * 60 * 60 * 1000);
   const completed = last14.filter(log => ["DONE", "MINIMUM"].includes(log.type)).length;
   const latestPain = logs[0]?.pain || state.pain;
-  const avgPain = logs.length ? (logs.slice(0, 7).reduce((sum, log) => sum + maxPain(log.pain), 0) / Math.min(logs.length, 7)).toFixed(1) : maxPain().toFixed(1);
+  const avgPain = averagePain(logs, 7);
+  const avgEnergy = averageEnergy(logs, 7);
+  const weight = weightTrend(logs);
+  const readiness = readinessStats(logs, 14);
+  const decision = coachDecision({ avgPain, avgEnergy, completed, readiness });
   return `
     <main class="screen" data-screen="progress">
-      ${renderTopbar("Progress", "Minimal signal, no dashboard clutter.")}
+      ${renderTopbar("Analytics", "Local trends from your check-ins.")}
       <section class="card accent-card">
-        <h2>Last 14 days</h2>
+        <h2>Coach decision</h2>
+        <p class="decision ${decision.level}">${decision.text}</p>
+        <p class="subtle">Based on last 7–14 days. Data stays on this iPhone.</p>
+      </section>
+      <section class="card" style="margin-top:16px">
+        <h2>Bodyweight</h2>
         <div class="readiness-strip">
-          <div class="metric"><strong>${completed}</strong><span>Done/min</span></div>
-          <div class="metric"><strong>${avgPain}</strong><span>Avg pain</span></div>
-          <div class="metric"><strong>${latestWeight() || "—"}</strong><span>Latest kg</span></div>
+          <div class="metric"><strong>${weight.latest || "—"}</strong><span>Latest kg</span></div>
+          <div class="metric"><strong>${weight.delta}</strong><span>30d trend</span></div>
+          <div class="metric"><strong>${weight.count}</strong><span>weigh-ins</span></div>
+        </div>
+        <p class="subtle" style="margin-top:10px">Target pace: slow drop, roughly 0.3–0.6 kg/week. Faster is not automatically better for kumite.</p>
+      </section>
+      <section class="card" style="margin-top:16px">
+        <h2>Readiness + recovery</h2>
+        <div class="readiness-strip">
+          <div class="metric"><strong>${completed}</strong><span>Done/min 14d</span></div>
+          <div class="metric"><strong>${avgEnergy === null ? "—" : avgEnergy.toFixed(1)}</strong><span>Avg energy</span></div>
+          <div class="metric"><strong>${readiness.green}/${readiness.yellow}/${readiness.red}</strong><span>G/Y/R</span></div>
         </div>
       </section>
       <section class="card" style="margin-top:16px">
-        <h2>Pain snapshot</h2>
+        <h2>Pain trend</h2>
         <div class="readiness-strip">
+          <div class="metric"><strong>${avgPain.toFixed(1)}</strong><span>Avg max pain</span></div>
           <div class="metric"><strong>${latestPain.knees}</strong><span>Knees</span></div>
           <div class="metric"><strong>${latestPain.achilles}</strong><span>Achilles</span></div>
-          <div class="metric"><strong>${latestPain.hips}</strong><span>Hips</span></div>
         </div>
-        <div class="metric" style="margin-top:8px"><strong>${latestPain.lowerBack}</strong><span>Lower back</span></div>
+        <div class="readiness-strip" style="margin-top:8px">
+          <div class="metric"><strong>${latestPain.hips}</strong><span>Hips</span></div>
+          <div class="metric"><strong>${latestPain.lowerBack}</strong><span>Lower back</span></div>
+          <div class="metric"><strong>${painDirection(logs)}</strong><span>Direction</span></div>
+        </div>
       </section>
       <section class="card" style="margin-top:16px">
-        <h2>Recent logs</h2>
+        <h2>Recent metric logs</h2>
         <div class="timeline">
-          ${logs.length ? logs.slice(0, 10).map(renderLogRow).join("") : `<p class="subtle">No logs yet. Today can be completed in under 30 seconds.</p>`}
+          ${logs.length ? logs.slice(0, 10).map(renderLogRow).join("") : `<p class="subtle">No logs yet. Start with today’s Sunday Review.</p>`}
         </div>
       </section>
     </main>`;

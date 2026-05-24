@@ -436,3 +436,14 @@ textarea:focus { border-color: hsl(355 78% 52% / .7); box-shadow: 0 0 0 4px hsl(
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
 }
+.decision {
+  margin-top: 10px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  font-weight: 820;
+  color: var(--text);
+}
+.decision.green { background: hsl(145 60% 45% / .16); border-color: hsl(145 60% 45% / .34); }
+.decision.yellow { background: hsl(42 92% 55% / .16); border-color: hsl(42 92% 55% / .34); }
+.decision.red { background: hsl(355 78% 52% / .16); border-color: hsl(355 78% 52% / .34); }
