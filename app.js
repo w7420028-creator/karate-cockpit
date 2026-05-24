@@ -15,12 +15,12 @@ const CARDS = {
     key: "sunday-review",
     shortDay: "SUN",
     label: "Sunday Review",
-    command: "Review. Do not compensate.",
+    command: "Three-minute review. No workout.",
     time: "3 min",
-    full: ["Enter bodyweight in kg", "Set pain sliders 0–10", "Set energy 0–10", "Write best kumite feeling"],
-    minimum: ["Open Sunday Review", "Save weight + pain + energy + best feeling"],
-    painRule: "If pain ≥4 or RED, next card becomes tissue-protection mode.",
-    reason: "Review keeps progression objective and prevents guilt-stacking."
+    full: ["0:00 — Weigh yourself or enter latest bodyweight", "0:30 — Set pain sliders: knees, Achilles, hips, lower back", "1:15 — Set energy 0–10", "1:45 — Write one best kumite feeling", "2:30 — Save review. Done."],
+    minimum: ["Enter pain + energy", "Write one word for best feeling", "Save. Weight can wait."],
+    painRule: "This decides next week: pain ≥4 = protect tissue, energy ≤4 = reduce extra work, good numbers = progress one variable only.",
+    reason: "Sunday is the coaching control loop: check bodyweight trend, tissue status, recovery, and one positive technical signal."
   },
   1: {
     key: "monday-karate",
@@ -478,7 +478,7 @@ function openReviewSession() {
         <div><p class="eyebrow">Sunday Review</p><h2>Four signals. No workout.</h2></div>
         <button class="btn ghost small" data-close-session>Close</button>
       </div>
-      <p class="subtle">Weight = current bodyweight in kg. Pain and energy are 0–10. Best kumite feeling is one short note.</p>
+      <p class="subtle">Do this: weigh or enter latest kg, set pain sliders, set energy, write one best kumite feeling, save. No workout.</p>
       <div class="card compact" style="margin-top:14px">
         ${renderReviewInputs(card)}
       </div>
