@@ -144,6 +144,31 @@ const DIAGRAM_PATHS = {
   shadow: '<circle cx="24" cy="13" r="4"/><path d="M24 18v18"/><path d="M15 25l9 5 12-8"/><path d="M24 36l-10 13"/><path d="M26 36l12 10"/><path d="M39 17c7 5 9 15 4 23"/><path d="M44 40h-7v-7"/>'
 };
 
+
+const DEMO_LINKS = {
+  ankle: { title: "Knee-to-wall", duration: "1:07", url: "https://www.youtube.com/watch?v=TErX68hudFA" },
+  calf: { title: "Calf raise", duration: "1:48", url: "https://www.youtube.com/watch?v=CtyIVeJH6lI" },
+  spanishSquat: { title: "Spanish squat", duration: "0:10", url: "https://www.youtube.com/watch?v=SZMidXQy7jY" },
+  hipSwitch: { title: "90/90 hips", duration: "0:31", url: "https://www.youtube.com/watch?v=m51AZSXMvEA" },
+  couchStretch: { title: "Couch stretch", duration: "0:53", url: "https://www.youtube.com/watch?v=Fg-lwNBzVV8" },
+  birdDog: { title: "Bird dog", duration: "0:26", url: "https://www.youtube.com/watch?v=ZdAHe9_HeEw" },
+  zone2: { title: "Zone 2", duration: "1:03", url: "https://www.youtube.com/watch?v=lyNKZwrTI48" },
+  mobility: { title: "Mobility", duration: "5:46", url: "https://www.youtube.com/watch?v=G2ciDpFx1GM" },
+  gobletSquat: { title: "Goblet squat", duration: "0:43", url: "https://www.youtube.com/watch?v=Xjo_fY9Hl9w" },
+  rdl: { title: "RDL", duration: "0:42", url: "https://www.youtube.com/watch?v=7j-2w4-P14I" },
+  splitSquat: { title: "Split squat", duration: "0:12", url: "https://www.youtube.com/watch?v=Wcmg-3iHwjQ" },
+  pushup: { title: "Push-up", duration: "0:14", url: "https://www.youtube.com/watch?v=WDIpL0pjun0" },
+  row: { title: "Band row", duration: "0:49", url: "https://www.youtube.com/watch?v=LSkyinhmA8k" },
+  plank: { title: "Side plank", duration: "1:11", url: "https://www.youtube.com/watch?v=N_s9em1xTqU" },
+  tibialis: { title: "Tibialis", duration: "0:42", url: "https://www.youtube.com/watch?v=OPEuhclsTUQ" },
+  stance: { title: "Kamae bounce", duration: "1:32", url: "https://www.youtube.com/watch?v=AqT2tXfbpgg" },
+  step: { title: "Footwork", duration: "0:37", url: "https://www.youtube.com/watch?v=c4FpG5P11gc" },
+  punch: { title: "Kizami entry", duration: "1:51", url: "https://www.youtube.com/watch?v=RPHGhZVQdKY" },
+  counter: { title: "Retreat counter", duration: "0:53", url: "https://www.youtube.com/watch?v=EKbQZ_C6v6c" },
+  angle: { title: "Angle exit", duration: "1:59", url: "https://www.youtube.com/watch?v=2CSRZvbkxAI" },
+  shadow: { title: "Shadow kumite", duration: "1:51", url: "https://www.youtube.com/watch?v=QY7pJkrGoL4" }
+};
+
 const app = document.querySelector("#app");
 let state = loadState();
 let route = "today";
@@ -564,9 +589,45 @@ function renderExerciseDiagram(item, card = currentCard()) {
   return `<span class="diagram-shell" aria-hidden="true"><svg class="exercise-diagram" viewBox="0 0 64 64" focusable="false">${paths}</svg></span>`;
 }
 
+function demoKeyForItem(item, card = currentCard()) {
+  if (card.key === "sunday-review") return "";
+  const text = item.toLowerCase();
+  if (text.includes("no make-up") || text.includes("skip without debt") || text.includes("attend lightly")) return "";
+  if (text.includes("ankle")) return "ankle";
+  if (text.includes("tibialis")) return "tibialis";
+  if (text.includes("calf")) return "calf";
+  if (text.includes("spanish squat") || text.includes("wall sit")) return "spanishSquat";
+  if (text.includes("goblet squat")) return "gobletSquat";
+  if (text.includes("split squat")) return "splitSquat";
+  if (text.includes("90/90") || text.includes("hip switches")) return "hipSwitch";
+  if (text.includes("hip flexor") || text.includes("couch stretch")) return "couchStretch";
+  if (text.includes("bird dog")) return "birdDog";
+  if (text.includes("zone 2") || text.includes("cardio") || text.includes("bike") || text.includes("elliptical") || text.includes("rower") || text.includes("breathing")) return "zone2";
+  if (text.includes("mobility") || text.includes("warm-up") || text.includes("easy movement") || text.includes("joint prep")) return "mobility";
+  if (text.includes("romanian deadlift")) return "rdl";
+  if (text.includes("push-up")) return "pushup";
+  if (text.includes("row")) return "row";
+  if (text.includes("side plank")) return "plank";
+  if (text.includes("kamae bounce") || text.includes("karate class") || text.includes("sparring")) return "stance";
+  if (text.includes("step-in") || text.includes("step-out")) return "step";
+  if (text.includes("kizami")) return "punch";
+  if (text.includes("retreat")) return "counter";
+  if (text.includes("angle exit")) return "angle";
+  if (text.includes("shadow kumite")) return "shadow";
+  return "";
+}
+
+function renderDemoLink(item, card = currentCard()) {
+  const key = demoKeyForItem(item, card);
+  const demo = key ? DEMO_LINKS[key] : null;
+  if (!demo) return "";
+  return `<a class="demo-link" href="${demo.url}" target="_blank" rel="noopener noreferrer" aria-label="Watch ${escapeHtml(demo.title)} demo on YouTube">Watch ${escapeHtml(demo.title)} <span>${demo.duration}</span></a>`;
+}
+
 function renderListItem(item, index, card = currentCard()) {
   const diagram = renderExerciseDiagram(item, card);
-  return `<li class="${diagram ? "has-diagram" : "no-diagram"}" data-index="${index + 1}">${diagram}<span>${escapeHtml(item)}</span></li>`;
+  const demo = renderDemoLink(item, card);
+  return `<li class="${diagram ? "has-diagram" : "no-diagram"}" data-index="${index + 1}">${diagram}<div class="exercise-copy"><span>${escapeHtml(item)}</span>${demo}</div></li>`;
 }
 
 function renderList(items, card = currentCard()) {
@@ -575,7 +636,8 @@ function renderList(items, card = currentCard()) {
 
 function renderSessionItem(item, card = currentCard()) {
   const diagram = renderExerciseDiagram(item, card);
-  return `<label class="check-item ${diagram ? "has-diagram" : "no-diagram"}"><input type="checkbox" />${diagram}<span>${escapeHtml(item)}</span></label>`;
+  const demo = renderDemoLink(item, card);
+  return `<div class="check-item ${diagram ? "has-diagram" : "no-diagram"}"><input type="checkbox" aria-label="${escapeHtml(item)}" />${diagram}<div class="exercise-copy"><span>${escapeHtml(item)}</span>${demo}</div></div>`;
 }
 
 function renderInsights() {
@@ -892,6 +954,10 @@ function bindCommonEvents() {
   document.querySelectorAll("[data-start]").forEach(button => button.addEventListener("click", () => openSession(button.dataset.start)));
   document.querySelector("[data-push-subscribe]")?.addEventListener("click", setupPushNotifications);
   document.querySelector("[data-push-copy]")?.addEventListener("click", copyPushSetupCode);
+  document.querySelectorAll(".demo-link").forEach(link => {
+    link.addEventListener("click", event => event.stopPropagation());
+    link.addEventListener("pointerdown", event => event.stopPropagation());
+  });
 }
 
 function logSession(type) {

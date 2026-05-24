@@ -207,6 +207,35 @@ h3 {
 }
 .exercise-diagram circle { fill: hsl(220 13% 8%); }
 
+.exercise-copy {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.demo-link {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  border: 1px solid hsl(213 86% 62% / .36);
+  border-radius: 999px;
+  padding: 5px 10px;
+  color: hsl(213 100% 78%);
+  background: hsl(213 86% 62% / .10);
+  font-size: 12px;
+  font-weight: 820;
+  text-decoration: none;
+  letter-spacing: -0.01em;
+  transition: transform 180ms var(--spring), background 180ms var(--exit), border-color 180ms var(--exit);
+}
+.demo-link span {
+  color: hsl(213 70% 84% / .76);
+  font-variant-numeric: tabular-nums;
+}
+.demo-link:active { transform: scale(.97); }
+.demo-link:focus-visible { outline: 2px solid hsl(213 100% 78%); outline-offset: 3px; }
+
 .actions { display: grid; gap: 12px; }
 .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .btn {
@@ -430,7 +459,7 @@ textarea:focus { border-color: hsl(355 78% 52% / .7); box-shadow: 0 0 0 4px hsl(
 .check-item .exercise-diagram { width: 52px; height: 52px; }
 .check-item input { width: 24px; height: 24px; accent-color: var(--green); }
 .check-item.done .diagram-shell { opacity: .55; }
-.check-item.done > span:last-child { color: var(--muted); text-decoration: line-through; }
+.check-item.done .exercise-copy > span:first-child { color: var(--muted); text-decoration: line-through; }
 
 .timeline { display: grid; gap: 10px; }
 .log-row {

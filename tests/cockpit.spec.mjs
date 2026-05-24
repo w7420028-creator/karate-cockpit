@@ -139,8 +139,10 @@ test.describe('Karate Cockpit V1', () => {
     await expect(page.getByText('Durability before danger.')).toBeVisible();
     await page.getByRole('button', { name: 'Start full' }).tap();
     await expect(page.getByRole('heading', { name: /Full: Strength \/ Tendon A/ })).toBeVisible();
-    await expect(page.getByLabel('Session mode').getByText(/Goblet squat/)).toBeVisible();
+    await expect(page.getByLabel('Session mode').getByText('Goblet squat — 3 × 8, RPE 6–7')).toBeVisible();
     await expect(page.getByLabel('Session mode').locator('.exercise-diagram')).toHaveCount(9);
+    await expect(page.getByLabel('Session mode').locator('.demo-link')).toHaveCount(9);
+    await expect(page.getByLabel('Session mode').getByRole('link', { name: /Watch Goblet squat/ })).toHaveAttribute('href', /Xjo_fY9Hl9w/);
     await expect(page.locator('[data-timer]')).toBeVisible();
     await expect(page.getByLabel('Session mode').locator('[data-weight]')).toHaveCount(0);
 

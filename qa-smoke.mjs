@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const source = fs.readFileSync('app.js', 'utf8') + '\nObject.assign(globalThis, { CARDS, state, VAPID_PUBLIC_KEY, renderToday, renderProgress, renderInsights, renderPlan, renderNotifications, pushCapability, urlBase64ToUint8Array, openSession, logSession, weightTrend, averageEnergy, renderReviewInputs, renderList, renderExerciseDiagram, diagramKeyForItem, metricPoints });';
+const source = fs.readFileSync('app.js', 'utf8') + '\nObject.assign(globalThis, { CARDS, state, VAPID_PUBLIC_KEY, renderToday, renderProgress, renderInsights, renderPlan, renderNotifications, pushCapability, urlBase64ToUint8Array, openSession, logSession, weightTrend, averageEnergy, renderReviewInputs, renderList, renderExerciseDiagram, diagramKeyForItem, demoKeyForItem, renderDemoLink, metricPoints });';
 function makeEl(tag = 'div') {
   return {
     tag,
@@ -71,12 +71,14 @@ for (const token of ['Visual cockpit', 'data-chart="weight-trend"', 'data-chart=
 }
 if (context.metricPoints(context.state.logs, log => Number(log.energy)).length !== 2) throw new Error('energy chart points missing');
 const illustratedList = context.renderList(context.CARDS[3].full, context.CARDS[3]);
-for (const token of ['diagram-shell', '<svg class="exercise-diagram" viewBox="0 0 64 64"', 'Goblet squat', 'Romanian deadlift']) {
-  if (!illustratedList.includes(token)) throw new Error(`exercise illustration missing ${token}`);
+for (const token of ['diagram-shell', '<svg class="exercise-diagram" viewBox="0 0 64 64"', 'Goblet squat', 'Romanian deadlift', 'demo-link', 'Watch Goblet squat', 'youtube.com/watch?v=Xjo_fY9Hl9w']) {
+  if (!illustratedList.includes(token)) throw new Error(`exercise illustration/demo missing ${token}`);
 }
 if (context.diagramKeyForItem('Kizami-zuki entry, no power', context.CARDS[4]) !== 'punch') throw new Error('karate footwork icon classification failed');
 if (context.diagramKeyForItem('Slow calf raises', context.CARDS[1]) !== 'calf') throw new Error('calf icon classification failed');
 if (context.diagramKeyForItem('6-min joint prep only', context.CARDS[1]) !== 'mobility') throw new Error('joint prep icon classification failed');
+if (context.demoKeyForItem('Retreat + gyaku-zuki counter', context.CARDS[4]) !== 'counter') throw new Error('karate counter demo classification failed');
+if (context.demoKeyForItem('If class is impossible: no make-up workout', context.CARDS[1]) !== '') throw new Error('non-exercise item should not have a demo link');
 const plan = context.renderPlan();
 for (const token of ['iPhone native push', 'Set up notifications', 'data-route="notifications"']) {
   if (!plan.includes(token)) throw new Error(`plan notification entry missing ${token}`);
@@ -88,7 +90,7 @@ for (const token of ['One-time iPhone push setup', 'IOS_PUSH_SUBSCRIPTION', 'No 
 if (context.urlBase64ToUint8Array(context.VAPID_PUBLIC_KEY).length !== 65) throw new Error('VAPID public key should decode to a P-256 public key');
 
 const swSource = fs.readFileSync('sw.js', 'utf8');
-for (const token of ['karate-cockpit-v10', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
+for (const token of ['karate-cockpit-v11', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
   if (!swSource.includes(token)) throw new Error(`service worker push coverage missing ${token}`);
 }
 context.state.logs = [context.state.logs[0]];
