@@ -244,6 +244,33 @@ input[type="range"] {
   width: 100%;
   accent-color: var(--accent);
 }
+.input-grid { display: grid; gap: 8px; margin-bottom: 14px; }
+.field-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--secondary);
+  font-size: 14px;
+  font-weight: 760;
+}
+.field-label span { color: var(--muted); font-size: 12px; font-weight: 650; }
+input[type="text"], input[inputmode="decimal"], #weight {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 0 16px;
+  color: var(--text);
+  background: hsl(220 13% 9% / .74);
+  outline: none;
+  font-weight: 780;
+}
+input[type="text"]:focus, input[inputmode="decimal"]:focus, #weight:focus {
+  border-color: hsl(355 78% 52% / .7);
+  box-shadow: 0 0 0 4px hsl(355 78% 52% / .14);
+}
+.energy-row { margin: 16px 0; }
+
 textarea {
   width: 100%;
   min-height: 84px;

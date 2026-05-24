@@ -17,8 +17,8 @@ const CARDS = {
     label: "Sunday Review",
     command: "Review. Do not compensate.",
     time: "3 min",
-    full: ["Weight", "Pain 0–10", "Energy 0–10", "Best kumite feeling"],
-    minimum: ["Send 4 numbers: weight / pain / energy / best"],
+    full: ["Enter bodyweight in kg", "Set pain sliders 0–10", "Set energy 0–10", "Write best kumite feeling"],
+    minimum: ["Open Sunday Review", "Save weight + pain + energy + best feeling"],
     painRule: "If pain ≥4 or RED, next card becomes tissue-protection mode.",
     reason: "Review keeps progression objective and prevents guilt-stacking."
   },
@@ -111,6 +111,8 @@ const DEFAULT_STATE = {
   readiness: "GREEN",
   pain: { knees: 0, achilles: 0, hips: 0, lowerBack: 0 },
   sparring: 0,
+  weight: "",
+  energy: 7,
   note: "",
   logs: []
 };
@@ -235,10 +237,8 @@ function renderToday() {
           <p class="subtle">${card.painRule}</p>
         </div>
         <div class="card">
-          <h2>30-sec check-in</h2>
-          ${renderPainSliders()}
-          <label class="eyebrow" for="note">What felt sharp?</label>
-          <textarea id="note" maxlength="140" placeholder="e.g. kizami timing">${escapeHtml(state.note || "")}</textarea>
+          <h2>${card.key === "sunday-review" ? "Sunday Review" : "30-sec check-in"}</h2>
+          ${renderReviewInputs(card)}
           <div class="actions" style="margin-top:14px">
             <div class="action-row">
               <button class="btn primary" data-log="DONE">Done</button>
@@ -257,6 +257,29 @@ function renderReadinessControl() {
       ${["GREEN", "YELLOW", "RED"].map(value => `<button class="btn ${value.toLowerCase()}" data-readiness="${value}" aria-pressed="${state.readiness === value}">${value}</button>`).join("")}
     </div>`;
 }
+
+function renderReviewInputs(card = currentCard()) {
+  const isSunday = card.key === "sunday-review";
+  return `
+    <div class="input-grid">
+      <label class="field-label" for="weight">Weight <span>${isSunday ? "current bodyweight in kg" : "optional"}</span></label>
+      <input id="weight" inputmode="decimal" autocomplete="off" placeholder="94.0" value="${escapeHtml(state.weight || "")}" />
+    </div>
+    ${renderPainSliders()}
+    <div class="slider-row energy-row">
+      <label for="energy">Energy</label>
+      <span class="value" id="value-energy">${state.energy ?? 7}</span>
+      <input id="energy" type="range" min="0" max="10" step="1" value="${state.energy ?? 7}" />
+    </div>
+    <label class="eyebrow" for="note">${isSunday ? "Best kumite feeling" : "What felt sharp?"}</label>
+    <textarea id="note" maxlength="140" placeholder="e.g. kizami timing">${escapeHtml(state.note || "")}</textarea>`;
+}
+
+function latestWeight() {
+  const log = state.logs.find(log => log.weight);
+  return log?.weight || state.weight || "";
+}
+
 
 function renderPainSliders() {
   const labels = [
@@ -291,7 +314,7 @@ function renderProgress() {
         <div class="readiness-strip">
           <div class="metric"><strong>${completed}</strong><span>Done/min</span></div>
           <div class="metric"><strong>${avgPain}</strong><span>Avg pain</span></div>
-          <div class="metric"><strong>${currentPhase().split(" · ")[0]}</strong><span>Phase</span></div>
+          <div class="metric"><strong>${latestWeight() || "—"}</strong><span>Latest kg</span></div>
         </div>
       </section>
       <section class="card" style="margin-top:16px">
@@ -369,6 +392,18 @@ function bindCommonEvents() {
     state.note = note.value.trim();
     saveState();
   });
+  const weight = document.querySelector("#weight");
+  if (weight) weight.addEventListener("input", () => {
+    state.weight = weight.value.trim();
+    saveState();
+  });
+  const energy = document.querySelector("#energy");
+  if (energy) energy.addEventListener("input", () => {
+    state.energy = Number(energy.value);
+    const value = document.querySelector("#value-energy");
+    if (value) value.textContent = energy.value;
+    saveState();
+  });
   document.querySelectorAll("[data-log]").forEach(button => button.addEventListener("click", () => logSession(button.dataset.log)));
   document.querySelectorAll("[data-start]").forEach(button => button.addEventListener("click", () => openSession(button.dataset.start)));
 }
@@ -382,6 +417,8 @@ function logSession(type) {
     readiness: suggestedReadiness(),
     pain: { ...state.pain },
     sparring: Number(state.sparring || 0),
+    weight: state.weight || "",
+    energy: Number(state.energy || 0),
     note: state.note || ""
   };
   state.logs = [log, ...state.logs].slice(0, 180);
@@ -394,6 +431,10 @@ function logSession(type) {
 
 function openSession(kind) {
   const card = currentCard();
+  if (card.key === "sunday-review") {
+    openReviewSession();
+    return;
+  }
   const items = kind === "minimum" ? card.minimum : card.full;
   timerSeconds = kind === "minimum" ? Math.min(10 * 60, estimateSeconds(card, kind)) : estimateSeconds(card, kind);
   const overlay = document.createElement("div");
@@ -425,6 +466,49 @@ function openSession(kind) {
   }));
   overlay.querySelectorAll(".check-item input").forEach(box => box.addEventListener("change", () => box.closest(".check-item").classList.toggle("done", box.checked)));
   startTimer(overlay.querySelector("[data-timer]"));
+}
+
+function openReviewSession() {
+  const card = currentCard();
+  const overlay = document.createElement("div");
+  overlay.className = "session-overlay";
+  overlay.innerHTML = `
+    <section class="session-panel" role="dialog" aria-modal="true" aria-label="Sunday review">
+      <div class="topbar" style="margin-bottom:8px">
+        <div><p class="eyebrow">Sunday Review</p><h2>Four signals. No workout.</h2></div>
+        <button class="btn ghost small" data-close-session>Close</button>
+      </div>
+      <p class="subtle">Weight = current bodyweight in kg. Pain and energy are 0–10. Best kumite feeling is one short note.</p>
+      <div class="card compact" style="margin-top:14px">
+        ${renderReviewInputs(card)}
+      </div>
+      <div class="actions" style="margin-top:16px">
+        <button class="btn primary" data-session-log="DONE">Save review</button>
+        <button class="btn warning" data-session-log="MINIMUM">Minimum</button>
+        <button class="btn danger" data-session-log="SKIPPED">Skip — no debt</button>
+      </div>
+    </section>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector("[data-close-session]").addEventListener("click", closeSession);
+  overlay.querySelectorAll("[data-pain]").forEach(input => input.addEventListener("input", () => {
+    const key = input.dataset.pain;
+    state.pain[key] = Number(input.value);
+    const value = overlay.querySelector(`#value-${key}`);
+    if (value) value.textContent = input.value;
+    saveState();
+  }));
+  overlay.querySelector("#weight")?.addEventListener("input", event => { state.weight = event.target.value.trim(); saveState(); });
+  overlay.querySelector("#energy")?.addEventListener("input", event => {
+    state.energy = Number(event.target.value);
+    const value = overlay.querySelector("#value-energy");
+    if (value) value.textContent = event.target.value;
+    saveState();
+  });
+  overlay.querySelector("#note")?.addEventListener("input", event => { state.note = event.target.value.trim(); saveState(); });
+  overlay.querySelectorAll("[data-session-log]").forEach(button => button.addEventListener("click", () => {
+    closeSession();
+    logSession(button.dataset.sessionLog);
+  }));
 }
 
 function closeSession() {
