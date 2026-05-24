@@ -234,7 +234,7 @@ function renderToday() {
           <span class="pill">${card.label}</span>
         </div>
         <h2 class="command">${completedToday ? "Completed today." : skippedToday ? "Skipped today. No debt." : card.command}</h2>
-        <p class="subtle">${completedToday ? "You can update today’s entry, but the app will not create duplicate Sunday reviews." : skippedToday ? "Continue with the next scheduled card. Update only if the situation changed." : card.reason}</p>
+        <p class="subtle">${completedToday ? "You can update today’s entry, but the app will not create duplicate logs for this card." : skippedToday ? "Continue with the next scheduled card. Update only if the situation changed." : card.reason}</p>
         ${todaysLog ? `<div class="today-status ${todaysLog.type.toLowerCase()}"><strong>${todaysLog.type}</strong><span>${formatLogLine(todaysLog)}</span></div>` : ""}
         <div class="actions wide">
           <button class="btn primary" data-start="full">${completedToday ? "Update entry" : "Start full"}</button>
@@ -282,21 +282,21 @@ function renderReadinessControl() {
     </div>`;
 }
 
-function renderReviewInputs(card = currentCard()) {
+function renderReviewInputs(card = currentCard(), prefix = "") {
   const isSunday = card.key === "sunday-review";
   return `
     <div class="input-grid">
-      <label class="field-label" for="weight">Weight <span>${isSunday ? "current bodyweight in kg" : "optional"}</span></label>
-      <input id="weight" inputmode="decimal" autocomplete="off" placeholder="94.0" value="${escapeHtml(state.weight || "")}" />
+      <label class="field-label" for="${prefix}weight">Weight <span>${isSunday ? "current bodyweight in kg" : "optional"}</span></label>
+      <input id="${prefix}weight" data-weight inputmode="decimal" autocomplete="off" placeholder="94.0" value="${escapeHtml(state.weight || "")}" />
     </div>
-    ${renderPainSliders()}
+    ${renderPainSliders(prefix)}
     <div class="slider-row energy-row">
-      <label for="energy">Energy</label>
-      <span class="value" id="value-energy">${state.energy ?? 7}</span>
-      <input id="energy" type="range" min="0" max="10" step="1" value="${state.energy ?? 7}" />
+      <label for="${prefix}energy">Energy</label>
+      <span class="value" id="${prefix}value-energy">${state.energy ?? 7}</span>
+      <input id="${prefix}energy" data-energy type="range" min="0" max="10" step="1" value="${state.energy ?? 7}" />
     </div>
-    <label class="eyebrow" for="note">${isSunday ? "Best kumite feeling" : "What felt sharp?"}</label>
-    <textarea id="note" maxlength="140" placeholder="e.g. kizami timing">${escapeHtml(state.note || "")}</textarea>`;
+    <label class="eyebrow" for="${prefix}note">${isSunday ? "Best kumite feeling" : "What felt sharp?"}</label>
+    <textarea id="${prefix}note" data-note maxlength="140" placeholder="e.g. kizami timing">${escapeHtml(state.note || "")}</textarea>`;
 }
 
 function latestWeight() {
@@ -368,7 +368,7 @@ function coachDecision({ avgPain, avgEnergy, completed, readiness }) {
 }
 
 
-function renderPainSliders() {
+function renderPainSliders(prefix = "") {
   const labels = [
     ["knees", "Knees"],
     ["achilles", "Achilles"],
@@ -377,9 +377,9 @@ function renderPainSliders() {
   ];
   return `<div class="slider-grid">${labels.map(([key, label]) => `
     <div class="slider-row">
-      <label for="pain-${key}">${label}</label>
-      <span class="value" id="value-${key}">${state.pain[key]}</span>
-      <input id="pain-${key}" data-pain="${key}" type="range" min="0" max="10" step="1" value="${state.pain[key]}" />
+      <label for="${prefix}pain-${key}">${label}</label>
+      <span class="value" id="${prefix}value-${key}">${state.pain[key]}</span>
+      <input id="${prefix}pain-${key}" data-pain="${key}" type="range" min="0" max="10" step="1" value="${state.pain[key]}" />
     </div>`).join("")}</div>`;
 }
 
@@ -496,17 +496,17 @@ function bindCommonEvents() {
     if (value) value.textContent = input.value;
     saveState();
   }));
-  const note = document.querySelector("#note");
+  const note = document.querySelector("[data-note]");
   if (note) note.addEventListener("input", () => {
     state.note = note.value.trim();
     saveState();
   });
-  const weight = document.querySelector("#weight");
+  const weight = document.querySelector("[data-weight]");
   if (weight) weight.addEventListener("input", () => {
     state.weight = weight.value.trim();
     saveState();
   });
-  const energy = document.querySelector("#energy");
+  const energy = document.querySelector("[data-energy]");
   if (energy) energy.addEventListener("input", () => {
     state.energy = Number(energy.value);
     const value = document.querySelector("#value-energy");
@@ -592,7 +592,7 @@ function openReviewSession() {
       </div>
       <p class="subtle">Do this: weigh or enter latest kg, set pain sliders, set energy, write one best kumite feeling, save. No workout.</p>
       <div class="card compact" style="margin-top:14px">
-        ${renderReviewInputs(card)}
+        ${renderReviewInputs(card, "session-")}
       </div>
       ${existing ? `<div class="today-status ${existing.type.toLowerCase()}" style="margin-top:14px"><strong>Already logged today</strong><span>${formatLogLine(existing)}</span></div>` : ""}
       <div class="actions" style="margin-top:16px">
@@ -606,18 +606,18 @@ function openReviewSession() {
   overlay.querySelectorAll("[data-pain]").forEach(input => input.addEventListener("input", () => {
     const key = input.dataset.pain;
     state.pain[key] = Number(input.value);
-    const value = overlay.querySelector(`#value-${key}`);
+    const value = overlay.querySelector(`#session-value-${key}`);
     if (value) value.textContent = input.value;
     saveState();
   }));
-  overlay.querySelector("#weight")?.addEventListener("input", event => { state.weight = event.target.value.trim(); saveState(); });
-  overlay.querySelector("#energy")?.addEventListener("input", event => {
+  overlay.querySelector("[data-weight]")?.addEventListener("input", event => { state.weight = event.target.value.trim(); saveState(); });
+  overlay.querySelector("[data-energy]")?.addEventListener("input", event => {
     state.energy = Number(event.target.value);
-    const value = overlay.querySelector("#value-energy");
+    const value = overlay.querySelector("#session-value-energy");
     if (value) value.textContent = event.target.value;
     saveState();
   });
-  overlay.querySelector("#note")?.addEventListener("input", event => { state.note = event.target.value.trim(); saveState(); });
+  overlay.querySelector("[data-note]")?.addEventListener("input", event => { state.note = event.target.value.trim(); saveState(); });
   overlay.querySelectorAll("[data-session-log]").forEach(button => button.addEventListener("click", () => {
     closeSession();
     logSession(button.dataset.sessionLog);
