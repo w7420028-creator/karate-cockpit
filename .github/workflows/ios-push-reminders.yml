@@ -1,0 +1,37 @@
+name: iOS push reminders
+
+on:
+  schedule:
+    # Reminder times are checked in Europe/Berlin by the Node script.
+    # This frequent UTC cron stays DST-safe; missing secrets exit cleanly.
+    - cron: '0,30 * * * *'
+  workflow_dispatch:
+    inputs:
+      force_reminder_key:
+        description: 'Optional reminder key to send immediately, e.g. sun-review'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Send due reminder
+        run: node scripts/send-ios-push-reminder.mjs
+        env:
+          APP_URL: https://w7420028-creator.github.io/karate-cockpit/
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          IOS_PUSH_SUBSCRIPTION: ${{ secrets.IOS_PUSH_SUBSCRIPTION }}
+          FORCE_REMINDER_KEY: ${{ inputs.force_reminder_key }}

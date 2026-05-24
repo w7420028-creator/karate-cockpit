@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const source = fs.readFileSync('app.js', 'utf8') + '\nObject.assign(globalThis, { CARDS, state, renderToday, renderProgress, renderInsights, renderPlan, openSession, logSession, weightTrend, averageEnergy, renderReviewInputs, metricPoints });';
+const source = fs.readFileSync('app.js', 'utf8') + '\nObject.assign(globalThis, { CARDS, state, VAPID_PUBLIC_KEY, renderToday, renderProgress, renderInsights, renderPlan, renderNotifications, pushCapability, urlBase64ToUint8Array, openSession, logSession, weightTrend, averageEnergy, renderReviewInputs, metricPoints });';
 function makeEl(tag = 'div') {
   return {
     tag,
@@ -28,7 +28,8 @@ const context = {
   },
   localStorage: { getItem: key => local.get(key) ?? null, setItem: (key, value) => local.set(key, value) },
   navigator: {},
-  window: { addEventListener() {} },
+  window: { addEventListener() {}, matchMedia: () => ({ matches: false }), location: { protocol: 'https:', hostname: 'localhost' }, isSecureContext: true },
+  location: { protocol: 'https:', hostname: 'localhost' },
   console,
   Date,
   Math,
@@ -37,6 +38,7 @@ const context = {
   JSON,
   structuredClone: value => JSON.parse(JSON.stringify(value)),
   crypto: { randomUUID: () => 'test-id' },
+  atob, btoa,
   setTimeout, clearTimeout, setInterval, clearInterval
 };
 vm.createContext(context);
@@ -68,6 +70,20 @@ for (const token of ['Visual cockpit', 'data-chart="weight-trend"', 'data-chart=
   if (!insights.includes(token)) throw new Error(`insights missing ${token}`);
 }
 if (context.metricPoints(context.state.logs, log => Number(log.energy)).length !== 2) throw new Error('energy chart points missing');
+const plan = context.renderPlan();
+for (const token of ['iPhone native push', 'Set up notifications', 'data-route="notifications"']) {
+  if (!plan.includes(token)) throw new Error(`plan notification entry missing ${token}`);
+}
+const notificationSetup = context.renderNotifications();
+for (const token of ['One-time iPhone push setup', 'IOS_PUSH_SUBSCRIPTION', 'No private VAPID key or GitHub token', 'Copy setup code']) {
+  if (!notificationSetup.includes(token)) throw new Error(`notification setup missing ${token}`);
+}
+if (context.urlBase64ToUint8Array(context.VAPID_PUBLIC_KEY).length !== 65) throw new Error('VAPID public key should decode to a P-256 public key');
+
+const swSource = fs.readFileSync('sw.js', 'utf8');
+for (const token of ['karate-cockpit-v9', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
+  if (!swSource.includes(token)) throw new Error(`service worker push coverage missing ${token}`);
+}
 context.state.logs = [context.state.logs[0]];
 const firstMarker = context.renderInsights();
 if (!firstMarker.includes('first marker · keep logging')) throw new Error('single datapoint first marker missing');

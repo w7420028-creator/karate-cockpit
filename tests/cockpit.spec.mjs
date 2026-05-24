@@ -116,6 +116,22 @@ test.describe('Karate Cockpit V1', () => {
     await expect(page.locator('[data-chart="consistency"]')).toContainText('1/14');
   });
 
+  test('Notification setup is reachable from app UI and explains iOS push constraints', async ({ page }) => {
+    await setAppDate(page, '2026-06-01T08:00:00+02:00');
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'Plan' }).tap();
+    await expect(page.getByText('iPhone native push')).toBeVisible();
+    await page.getByRole('button', { name: 'Set up notifications' }).tap();
+
+    await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible();
+    await expect(page.getByText('One-time iPhone push setup.')).toBeVisible();
+    await expect(page.getByText(/iOS only allows Web Push/)).toBeVisible();
+    await expect(page.getByText('IOS_PUSH_SUBSCRIPTION')).toHaveCount(2);
+    await expect(page.getByText(/No private VAPID key or GitHub token/)).toBeVisible();
+    await expect(page.locator('.subscription-export').first()).toBeVisible();
+  });
+
   test('Wednesday session overlay is checklist/timer, not review inputs', async ({ page }) => {
     await setAppDate(page, '2026-06-03T20:00:00+02:00');
     await page.goto('/');

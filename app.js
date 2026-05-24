@@ -1,5 +1,7 @@
 const PLAN_START = new Date("2026-05-25T00:00:00");
 const STORAGE_KEY = "karate-cockpit-v1";
+const APP_URL = "https://w7420028-creator.github.io/karate-cockpit/";
+const VAPID_PUBLIC_KEY = "BH2EnekLiapo_ZR4OcV2GxrTgGSzrlhKnRuYh_-cmfYWQCMBHomzrQynEAWwHGrCEwZvwh2ANmpI21mw4OA0Bqs";
 
 const JOINT_PREP = [
   "Ankle knee-to-wall rocks — 10/side",
@@ -123,6 +125,9 @@ let route = "today";
 let toastTimer;
 let sessionTimer;
 let timerSeconds = 0;
+let pushExportJson = "";
+let pushSetupCode = "";
+let pushStatus = "";
 
 function loadState() {
   try {
@@ -199,7 +204,7 @@ function suggestedReadiness() {
 }
 
 function render() {
-  const screen = route === "progress" ? renderProgress() : route === "insights" ? renderInsights() : route === "plan" ? renderPlan() : renderToday();
+  const screen = route === "progress" ? renderProgress() : route === "insights" ? renderInsights() : route === "notifications" ? renderNotifications() : route === "plan" ? renderPlan() : renderToday();
   app.innerHTML = `${screen}${renderNav()}`;
   bindCommonEvents();
 }
@@ -530,6 +535,147 @@ function renderInsights() {
     </main>`;
 }
 
+
+function renderNotifications() {
+  const capability = pushCapability();
+  const permission = typeof Notification === "undefined" ? "unavailable" : Notification.permission;
+  const installLabel = capability.standalone ? "Installed as Home Screen app" : "Open in Safari → Share → Add to Home Screen";
+  const supportTone = capability.ready ? "green" : "yellow";
+  const supportText = capability.ready ? "Ready for native Web Push setup." : capability.reason;
+  return `
+    <main class="screen" data-screen="notifications">
+      ${renderTopbar("Notifications", "Native iOS reminders without Cloudflare.")}
+      <section class="hero notification-hero">
+        <div class="hero-meta">
+          <span class="pill ${supportTone}">${capability.ready ? "PUSH READY" : "SETUP NEEDED"}</span>
+          <span class="pill">Permission: ${permission}</span>
+        </div>
+        <h2 class="command">One-time iPhone push setup.</h2>
+        <p class="subtle">iOS only allows Web Push after this site is added to the Home Screen and opened as the installed PWA. After permission, copy the setup code into the GitHub Secret <code>IOS_PUSH_SUBSCRIPTION</code>.</p>
+      </section>
+
+      <section class="stack" style="margin-top:16px">
+        <div class="card accent-card">
+          <h2>1 · Install check</h2>
+          <div class="readiness-strip">
+            <div class="metric"><strong>${capability.secure ? "YES" : "NO"}</strong><span>HTTPS / secure</span></div>
+            <div class="metric"><strong>${capability.push ? "YES" : "NO"}</strong><span>Push API</span></div>
+            <div class="metric"><strong>${capability.standalone ? "YES" : "NO"}</strong><span>Home Screen</span></div>
+          </div>
+          <p class="subtle" style="margin-top:12px">${installLabel}. ${supportText}</p>
+        </div>
+
+        <div class="card notification-card">
+          <h2>2 · Create subscription</h2>
+          <p class="subtle">This asks iOS for notification permission, subscribes this iPhone to the app’s public VAPID key, then creates an export code. No private VAPID key or GitHub token enters the app.</p>
+          <div class="actions" style="margin-top:14px">
+            <button class="btn primary" data-push-subscribe>${pushExportJson ? "Refresh setup code" : "Allow notifications"}</button>
+            <button class="btn secondary" data-push-copy ${pushSetupCode ? "" : "disabled"}>Copy setup code</button>
+          </div>
+          ${pushStatus ? `<p class="push-status">${escapeHtml(pushStatus)}</p>` : ""}
+        </div>
+
+        <div class="card export-card">
+          <h2>3 · Save in GitHub Secret</h2>
+          <p class="subtle">Secret name: <code>IOS_PUSH_SUBSCRIPTION</code>. Value: setup code below. Keep it out of committed files.</p>
+          <textarea class="subscription-export" readonly placeholder="Setup code appears here after subscribing.">${escapeHtml(pushSetupCode)}</textarea>
+          <details>
+            <summary>Show raw subscription JSON</summary>
+            <textarea class="subscription-export raw" readonly>${escapeHtml(pushExportJson)}</textarea>
+          </details>
+        </div>
+
+        <div class="card">
+          <h2>What you’ll receive</h2>
+          ${renderList(["Karate prep reminders on Monday/Friday mornings", "Recovery, strength, footwork, optional engine, and Sunday review nudges", "A tap opens Karate Cockpit directly at the public app URL"])}
+          <button class="btn ghost" style="margin-top:14px" data-route="plan">Back to plan</button>
+        </div>
+      </section>
+    </main>`;
+}
+
+function pushCapability() {
+  const currentLocation = globalThis.location || window.location || {};
+  const secure = Boolean(window.isSecureContext || currentLocation.protocol === "https:" || currentLocation.hostname === "localhost" || currentLocation.hostname === "127.0.0.1");
+  const serviceWorker = "serviceWorker" in navigator;
+  const notification = "Notification" in window;
+  const push = "PushManager" in window;
+  const standalone = Boolean(navigator.standalone || window.matchMedia?.("(display-mode: standalone)").matches);
+  let reason = "Native Web Push needs HTTPS, service workers, Push API, and notification permission.";
+  if (!secure) reason = "Open the GitHub Pages HTTPS URL before subscribing.";
+  else if (!serviceWorker) reason = "This browser does not expose service workers.";
+  else if (!notification || !push) reason = "This browser does not expose Web Push. On iPhone use iOS 16.4+ Safari and the Home Screen app.";
+  else if (!standalone) reason = "On iPhone, add Karate Cockpit to the Home Screen and open that icon before allowing notifications.";
+  return { secure, serviceWorker, notification, push, standalone, ready: secure && serviceWorker && notification && push, reason };
+}
+
+async function setupPushNotifications() {
+  const capability = pushCapability();
+  if (!capability.ready) {
+    pushStatus = capability.reason;
+    render();
+    showToast("Notification setup needs the installed PWA.");
+    return;
+  }
+  if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.includes("REPLACE")) {
+    pushStatus = "VAPID public key is not configured.";
+    render();
+    return;
+  }
+  try {
+    const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
+    if (permission !== "granted") {
+      pushStatus = `Permission is ${permission}. Enable notifications in iOS Settings if you denied it.`;
+      render();
+      return;
+    }
+    const registration = await navigator.serviceWorker.register("./sw.js");
+    await registration.update().catch(() => {});
+    const readyRegistration = await navigator.serviceWorker.ready;
+    const existing = await readyRegistration.pushManager.getSubscription();
+    const subscription = existing || await readyRegistration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+    const exportObject = {
+      app: "karate-cockpit",
+      version: 1,
+      createdAt: new Date().toISOString(),
+      appUrl: APP_URL,
+      subscription: subscription.toJSON()
+    };
+    pushExportJson = JSON.stringify(exportObject, null, 2);
+    pushSetupCode = btoa(unescape(encodeURIComponent(JSON.stringify(exportObject))));
+    pushStatus = existing ? "Existing subscription found. Setup code refreshed." : "Subscribed. Setup code ready to copy.";
+    render();
+    await copyPushSetupCode(false);
+  } catch (error) {
+    pushStatus = `Setup failed: ${error?.message || "unknown error"}`;
+    render();
+  }
+}
+
+async function copyPushSetupCode(showCopiedToast = true) {
+  if (!pushSetupCode) return;
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("clipboard unavailable");
+    await navigator.clipboard.writeText(pushSetupCode);
+    showToast(showCopiedToast ? "Setup code copied." : "Subscribed and copied.");
+  } catch {
+    showToast("Setup code ready — copy it manually.");
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = globalThis.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i += 1) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+
 function renderProgress() {
   const logs = state.logs;
   const last14 = logs.filter(log => Date.now() - new Date(log.date).getTime() <= 14 * 24 * 60 * 60 * 1000);
@@ -549,6 +695,7 @@ function renderProgress() {
         <p class="subtle">Based on last 7–14 days. Data stays on this iPhone.</p>
         <div class="actions" style="margin-top:14px">
           <button class="btn primary" data-route="insights">Open charts</button>
+          <button class="btn secondary" data-route="notifications">iPhone notifications</button>
         </div>
       </section>
       <section class="card" style="margin-top:16px">
@@ -607,6 +754,14 @@ function renderPlan() {
         <h2>Current focus</h2>
         <p class="subtle">Week 1–4: make training automatic, clean mechanics, add tiny volume only if joints are quiet, then deload and assess.</p>
       </section>
+      <section class="card notify-entry" style="margin-top:16px">
+        <div>
+          <p class="eyebrow">iPhone native push</p>
+          <h2>Reminder setup</h2>
+          <p class="subtle">Optional one-time Home Screen PWA setup. Exports a private device subscription for GitHub Actions — never stores it in public app files.</p>
+        </div>
+        <button class="btn primary" data-route="notifications">Set up notifications</button>
+      </section>
       <section class="card" style="margin-top:16px">
         <h2>Weekly rhythm</h2>
         <div class="week-grid">
@@ -623,7 +778,7 @@ function renderPlan() {
 function renderNav() {
   const items = [["today", "Today"], ["progress", "Progress"], ["plan", "Plan"]];
   return `<nav class="bottom-nav" aria-label="Primary">${items.map(([key, label]) => {
-    const active = route === key || (route === "insights" && key === "progress");
+    const active = route === key || (["insights", "notifications"].includes(route) && key === "progress");
     return `<button class="nav-btn" data-route="${key}" aria-current="${active ? "page" : "false"}">${label}</button>`;
   }).join("")}</nav>`;
 }
@@ -664,6 +819,8 @@ function bindCommonEvents() {
   });
   document.querySelectorAll("[data-log]").forEach(button => button.addEventListener("click", () => logSession(button.dataset.log)));
   document.querySelectorAll("[data-start]").forEach(button => button.addEventListener("click", () => openSession(button.dataset.start)));
+  document.querySelector("[data-push-subscribe]")?.addEventListener("click", setupPushNotifications);
+  document.querySelector("[data-push-copy]")?.addEventListener("click", copyPushSetupCode);
 }
 
 function logSession(type) {
