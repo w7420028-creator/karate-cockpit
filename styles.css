@@ -360,7 +360,7 @@ textarea:focus { border-color: hsl(355 78% 52% / .7); box-shadow: 0 0 0 4px hsl(
   width: min(460px, 100%);
   padding: 10px 16px calc(env(safe-area-inset-bottom) + 10px);
   transform: translateX(-50%);
-  background: linear-gradient(180deg, transparent, hsl(220 13% 7% / .92) 24%);
+  background: linear-gradient(180deg, hsl(220 13% 7% / .96), hsl(220 13% 7% / .98));
   backdrop-filter: blur(18px);
 }
 .nav-btn {
