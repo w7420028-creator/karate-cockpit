@@ -199,7 +199,7 @@ function suggestedReadiness() {
 }
 
 function render() {
-  const screen = route === "progress" ? renderProgress() : route === "plan" ? renderPlan() : renderToday();
+  const screen = route === "progress" ? renderProgress() : route === "insights" ? renderInsights() : route === "plan" ? renderPlan() : renderToday();
   app.innerHTML = `${screen}${renderNav()}`;
   bindCommonEvents();
 }
@@ -367,6 +367,121 @@ function coachDecision({ avgPain, avgEnergy, completed, readiness }) {
   return { level: "yellow", text: "Not enough signal yet. Keep the plan easy and collect clean data." };
 }
 
+function metricPoints(logs, selector) {
+  return logs
+    .map(log => ({ date: new Date(log.date), value: selector(log), log }))
+    .filter(point => point.date.toString() !== "Invalid Date" && Number.isFinite(point.value))
+    .sort((a, b) => a.date - b.date);
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function chartBounds(points, fixedMin = null, fixedMax = null) {
+  if (!points.length) return { min: fixedMin ?? 0, max: fixedMax ?? 10 };
+  const values = points.map(point => point.value);
+  let min = fixedMin ?? Math.min(...values);
+  let max = fixedMax ?? Math.max(...values);
+  if (min === max) {
+    const padding = fixedMin === null && fixedMax === null ? 1 : 0.8;
+    min -= padding;
+    max += padding;
+  }
+  return { min, max };
+}
+
+function renderSparkChart({ title, subtitle, points, unit = "", tone = "accent", min = null, max = null }) {
+  const chartWidth = 320;
+  const chartHeight = 164;
+  const padX = 24;
+  const padTop = 24;
+  const padBottom = 34;
+  const plotWidth = chartWidth - padX * 2;
+  const plotHeight = chartHeight - padTop - padBottom;
+  const bounds = chartBounds(points, min, max);
+  const scaleX = index => points.length <= 1 ? chartWidth / 2 : padX + (index / (points.length - 1)) * plotWidth;
+  const scaleY = value => padTop + (1 - ((clamp(value, bounds.min, bounds.max) - bounds.min) / (bounds.max - bounds.min))) * plotHeight;
+  const polyline = points.map((point, index) => `${scaleX(index).toFixed(1)},${scaleY(point.value).toFixed(1)}`).join(" ");
+  const latestPoint = points.length ? points[points.length - 1] : null;
+  const oldestPoint = points.length ? points[0] : null;
+  const delta = points.length >= 2 ? latestPoint.value - oldestPoint.value : null;
+  const latest = latestPoint ? `${latestPoint.value.toFixed(unit === "kg" ? 1 : 0)}${unit ? ` ${unit}` : ""}` : "—";
+  const direction = delta === null ? "First marker" : `${delta >= 0 ? "+" : ""}${delta.toFixed(unit === "kg" ? 1 : 0)}${unit ? ` ${unit}` : ""}`;
+  return `
+    <article class="chart-card ${tone}" data-chart="${escapeHtml(title.toLowerCase().replace(/\s+/g, "-"))}">
+      <div class="chart-head">
+        <div><h2>${title}</h2><p class="subtle">${subtitle}</p></div>
+        <div class="chart-stat"><strong>${latest}</strong><span>${direction}</span></div>
+      </div>
+      ${points.length ? `
+        <svg class="trend-svg" viewBox="0 0 ${chartWidth} ${chartHeight}" role="img" aria-label="${escapeHtml(title)} trend chart with ${points.length} datapoint${points.length === 1 ? "" : "s"}">
+          <path class="grid-line" d="M${padX} ${padTop}H${chartWidth - padX}M${padX} ${padTop + plotHeight / 2}H${chartWidth - padX}M${padX} ${padTop + plotHeight}H${chartWidth - padX}" />
+          ${points.length > 1 ? `<polyline class="trend-line" points="${polyline}" />` : ""}
+          ${points.map((point, index) => `<circle class="trend-dot" cx="${scaleX(index).toFixed(1)}" cy="${scaleY(point.value).toFixed(1)}" r="${points.length === 1 ? 7 : 5}" />`).join("")}
+          ${points.length === 1 ? `<text class="first-marker" x="${chartWidth / 2}" y="${chartHeight - 10}" text-anchor="middle">first marker · keep logging</text>` : ""}
+          <text class="axis-label" x="${padX}" y="${chartHeight - 10}">${formatChartDate(oldestPoint.date)}</text>
+          ${points.length > 1 ? `<text class="axis-label" x="${chartWidth - padX}" y="${chartHeight - 10}" text-anchor="end">${formatChartDate(latestPoint.date)}</text>` : ""}
+        </svg>` : `<div class="chart-empty"><strong>No datapoint yet</strong><span>Log one check-in and this becomes your first marker.</span></div>`}
+    </article>`;
+}
+
+function formatChartDate(date) {
+  return date.toLocaleDateString(undefined, { day: "2-digit", month: "short" });
+}
+
+function consistencyDays(logs, days = 14) {
+  const result = [];
+  const byDay = logs.reduce((acc, log) => {
+    const key = localDateKey(log.date);
+    if (!acc[key] || ["DONE", "MINIMUM"].includes(log.type)) acc[key] = log;
+    return acc;
+  }, {});
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const date = new Date();
+    date.setHours(12, 0, 0, 0);
+    date.setDate(date.getDate() - i);
+    const key = localDateKey(date);
+    const log = byDay[key];
+    result.push({ key, date, log, complete: ["DONE", "MINIMUM"].includes(log?.type) });
+  }
+  return result;
+}
+
+function renderConsistencyChart(logs) {
+  const days = consistencyDays(logs, 14);
+  const done = days.filter(day => day.complete).length;
+  const streak = days.reduceRight((count, day) => day.complete && count === days.length - 1 - days.indexOf(day) ? count + 1 : count, 0);
+  return `
+    <article class="chart-card consistency" data-chart="consistency">
+      <div class="chart-head">
+        <div><h2>Consistency</h2><p class="subtle">Last 14 days: done/minimum beats perfect.</p></div>
+        <div class="chart-stat"><strong>${done}/14</strong><span>${streak ? `${streak}d streak` : "start today"}</span></div>
+      </div>
+      <div class="consistency-grid" aria-label="14 day consistency chart">
+        ${days.map(day => `<span class="consistency-cell ${day.complete ? "complete" : day.log?.type === "SKIPPED" ? "skipped" : "empty"}" title="${day.key}">${day.date.toLocaleDateString(undefined, { weekday: "short" }).slice(0, 1)}</span>`).join("")}
+      </div>
+    </article>`;
+}
+
+function renderReadinessBars(logs) {
+  const stats = readinessStats(logs, 14);
+  const total = Math.max(1, stats.green + stats.yellow + stats.red);
+  const pct = value => `${Math.max(8, (value / total) * 100).toFixed(1)}%`;
+  return `
+    <article class="chart-card readiness-visual" data-chart="readiness">
+      <div class="chart-head">
+        <div><h2>Readiness mix</h2><p class="subtle">Green should grow without hiding yellow/red signals.</p></div>
+        <div class="chart-stat"><strong>${stats.green}/${stats.yellow}/${stats.red}</strong><span>G/Y/R · 14d</span></div>
+      </div>
+      <div class="readiness-bars" aria-label="Readiness distribution chart">
+        <span class="bar green" style="width:${pct(stats.green)}"><b>${stats.green}</b></span>
+        <span class="bar yellow" style="width:${pct(stats.yellow)}"><b>${stats.yellow}</b></span>
+        <span class="bar red" style="width:${pct(stats.red)}"><b>${stats.red}</b></span>
+      </div>
+    </article>`;
+}
+
 
 function renderPainSliders(prefix = "") {
   const labels = [
@@ -387,6 +502,34 @@ function renderList(items) {
   return `<ol class="exercise-list">${items.map((item, index) => `<li data-index="${index + 1}"><span>${item}</span></li>`).join("")}</ol>`;
 }
 
+function renderInsights() {
+  const logs = state.logs;
+  const weightPoints = metricPoints(logs, log => numericWeight(log.weight));
+  const painPoints = metricPoints(logs, log => log.pain ? maxPain(log.pain) : null);
+  const energyPoints = metricPoints(logs, log => Number(log.energy));
+  const avgPain = averagePain(logs, 7);
+  const avgEnergy = averageEnergy(logs, 7);
+  return `
+    <main class="screen" data-screen="insights">
+      ${renderTopbar("Insights", "On-demand charts from local check-ins.")}
+      <section class="insight-hero">
+        <button class="btn ghost small" data-route="progress">← Analytics</button>
+        <div>
+          <p class="eyebrow">Visual cockpit</p>
+          <h2>Signals, not clutter.</h2>
+          <p class="subtle">Every chart is generated from <code>${STORAGE_KEY}</code>. One datapoint creates a first marker; trend lines appear as the log grows.</p>
+        </div>
+      </section>
+      <section class="chart-stack" aria-label="Coaching visualizations">
+        ${renderSparkChart({ title: "Weight trend", subtitle: "Bodyweight direction, not daily noise.", points: weightPoints, unit: "kg", tone: "weight" })}
+        ${renderSparkChart({ title: "Pain trend", subtitle: `Max joint pain · 7-log avg ${avgPain.toFixed(1)}/10.`, points: painPoints, unit: "/10", tone: "pain", min: 0, max: 10 })}
+        ${renderSparkChart({ title: "Energy trend", subtitle: `Readiness energy · avg ${avgEnergy === null ? "—" : avgEnergy.toFixed(1)}/10.`, points: energyPoints, unit: "/10", tone: "energy", min: 0, max: 10 })}
+        ${renderConsistencyChart(logs)}
+        ${renderReadinessBars(logs)}
+      </section>
+    </main>`;
+}
+
 function renderProgress() {
   const logs = state.logs;
   const last14 = logs.filter(log => Date.now() - new Date(log.date).getTime() <= 14 * 24 * 60 * 60 * 1000);
@@ -404,6 +547,9 @@ function renderProgress() {
         <h2>Coach decision</h2>
         <p class="decision ${decision.level}">${decision.text}</p>
         <p class="subtle">Based on last 7–14 days. Data stays on this iPhone.</p>
+        <div class="actions" style="margin-top:14px">
+          <button class="btn primary" data-route="insights">Open charts</button>
+        </div>
       </section>
       <section class="card" style="margin-top:16px">
         <h2>Bodyweight</h2>
@@ -476,7 +622,10 @@ function renderPlan() {
 
 function renderNav() {
   const items = [["today", "Today"], ["progress", "Progress"], ["plan", "Plan"]];
-  return `<nav class="bottom-nav" aria-label="Primary">${items.map(([key, label]) => `<button class="nav-btn" data-route="${key}" aria-current="${route === key ? "page" : "false"}">${label}</button>`).join("")}</nav>`;
+  return `<nav class="bottom-nav" aria-label="Primary">${items.map(([key, label]) => {
+    const active = route === key || (route === "insights" && key === "progress");
+    return `<button class="nav-btn" data-route="${key}" aria-current="${active ? "page" : "false"}">${label}</button>`;
+  }).join("")}</nav>`;
 }
 
 function bindCommonEvents() {

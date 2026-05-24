@@ -83,6 +83,37 @@ test.describe('Karate Cockpit V1', () => {
     await expect(page.getByText('Avg energy')).toBeVisible();
     await expect(page.getByText('Pain trend')).toBeVisible();
     await expect(page.locator('.timeline .log-row').first()).toContainText('kizami');
+
+    await page.getByRole('button', { name: 'Open charts' }).tap();
+    await expect(page.getByRole('heading', { name: 'Insights' })).toBeVisible();
+    await expect(page.locator('[data-chart="weight-trend"]')).toContainText('93.8 kg');
+    await expect(page.locator('[data-chart="pain-trend"] svg[aria-label*="2 datapoints"]')).toBeVisible();
+    await expect(page.locator('[data-chart="energy-trend"]')).toContainText('7 /10');
+    await expect(page.locator('[data-chart="consistency"]')).toContainText('2/14');
+    await expect(page.locator('[data-chart="readiness"]')).toContainText('1/1/0');
+  });
+
+  test('Insights renders a clear first-marker with a single datapoint', async ({ page }) => {
+    await setAppDate(page, '2026-06-01T08:00:00+02:00');
+    await seedState(page, {
+      readiness: 'GREEN',
+      pain: defaultPain,
+      sparring: 0,
+      weight: '94.0',
+      energy: 6,
+      note: '',
+      logs: [
+        { id: 'single', date: '2026-06-01T07:45:00+02:00', card: 'monday-karate', type: 'DONE', readiness: 'GREEN', pain: { knees: 1, achilles: 1, hips: 0, lowerBack: 0 }, weight: '94.0', energy: 6, note: 'sharp' }
+      ]
+    });
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Progress' }).tap();
+    await page.getByRole('button', { name: 'Open charts' }).tap();
+
+    await expect(page.locator('[data-chart="weight-trend"]')).toContainText('First marker');
+    await expect(page.locator('[data-chart="weight-trend"] svg[aria-label*="1 datapoint"]')).toBeVisible();
+    await expect(page.locator('[data-chart="pain-trend"]')).toContainText('1 /10');
+    await expect(page.locator('[data-chart="consistency"]')).toContainText('1/14');
   });
 
   test('Wednesday session overlay is checklist/timer, not review inputs', async ({ page }) => {

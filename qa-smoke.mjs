@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const source = fs.readFileSync('app.js', 'utf8') + '\nObject.assign(globalThis, { CARDS, state, renderToday, renderProgress, renderPlan, openSession, logSession, weightTrend, averageEnergy, renderReviewInputs });';
+const source = fs.readFileSync('app.js', 'utf8') + '\nObject.assign(globalThis, { CARDS, state, renderToday, renderProgress, renderInsights, renderPlan, openSession, logSession, weightTrend, averageEnergy, renderReviewInputs, metricPoints });';
 function makeEl(tag = 'div') {
   return {
     tag,
@@ -60,9 +60,17 @@ context.state.logs = [
 if (context.weightTrend(context.state.logs).latest !== '94.0') throw new Error('weight latest failed');
 if (context.averageEnergy(context.state.logs, 7) !== 2.5) throw new Error('energy zero should count');
 const progress = context.renderProgress();
-for (const token of ['Coach decision', 'Bodyweight', 'Pain trend', 'Readiness + recovery']) {
+for (const token of ['Coach decision', 'Bodyweight', 'Pain trend', 'Readiness + recovery', 'Open charts']) {
   if (!progress.includes(token)) throw new Error(`progress missing ${token}`);
 }
+const insights = context.renderInsights();
+for (const token of ['Visual cockpit', 'data-chart="weight-trend"', 'data-chart="pain-trend"', 'data-chart="energy-trend"', 'data-chart="consistency"']) {
+  if (!insights.includes(token)) throw new Error(`insights missing ${token}`);
+}
+if (context.metricPoints(context.state.logs, log => Number(log.energy)).length !== 2) throw new Error('energy chart points missing');
+context.state.logs = [context.state.logs[0]];
+const firstMarker = context.renderInsights();
+if (!firstMarker.includes('first marker · keep logging')) throw new Error('single datapoint first marker missing');
 
 // Same-day logging should update, not duplicate.
 context.state.logs = [];
