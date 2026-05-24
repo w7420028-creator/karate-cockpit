@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const source = fs.readFileSync('app.js', 'utf8') + '\nObject.assign(globalThis, { CARDS, state, VAPID_PUBLIC_KEY, renderToday, renderProgress, renderInsights, renderPlan, renderNotifications, pushCapability, urlBase64ToUint8Array, openSession, logSession, weightTrend, averageEnergy, renderReviewInputs, metricPoints });';
+const source = fs.readFileSync('app.js', 'utf8') + '\nObject.assign(globalThis, { CARDS, state, VAPID_PUBLIC_KEY, renderToday, renderProgress, renderInsights, renderPlan, renderNotifications, pushCapability, urlBase64ToUint8Array, openSession, logSession, weightTrend, averageEnergy, renderReviewInputs, renderList, renderExerciseDiagram, diagramKeyForItem, metricPoints });';
 function makeEl(tag = 'div') {
   return {
     tag,
@@ -70,6 +70,13 @@ for (const token of ['Visual cockpit', 'data-chart="weight-trend"', 'data-chart=
   if (!insights.includes(token)) throw new Error(`insights missing ${token}`);
 }
 if (context.metricPoints(context.state.logs, log => Number(log.energy)).length !== 2) throw new Error('energy chart points missing');
+const illustratedList = context.renderList(context.CARDS[3].full, context.CARDS[3]);
+for (const token of ['diagram-shell', '<svg class="exercise-diagram" viewBox="0 0 64 64"', 'Goblet squat', 'Romanian deadlift']) {
+  if (!illustratedList.includes(token)) throw new Error(`exercise illustration missing ${token}`);
+}
+if (context.diagramKeyForItem('Kizami-zuki entry, no power', context.CARDS[4]) !== 'punch') throw new Error('karate footwork icon classification failed');
+if (context.diagramKeyForItem('Slow calf raises', context.CARDS[1]) !== 'calf') throw new Error('calf icon classification failed');
+if (context.diagramKeyForItem('6-min joint prep only', context.CARDS[1]) !== 'mobility') throw new Error('joint prep icon classification failed');
 const plan = context.renderPlan();
 for (const token of ['iPhone native push', 'Set up notifications', 'data-route="notifications"']) {
   if (!plan.includes(token)) throw new Error(`plan notification entry missing ${token}`);

@@ -119,6 +119,31 @@ const DEFAULT_STATE = {
   logs: []
 };
 
+const DIAGRAM_PATHS = {
+  ankle: '<path d="M23 20v18l14 6"/><path d="M21 38h20"/><circle cx="23" cy="16" r="4"/>',
+  calf: '<circle cx="32" cy="13" r="4"/><path d="M32 18v18"/><path d="M24 31l8-13 8 13"/><path d="M28 36l-4 13"/><path d="M36 36l5 13"/><path d="M21 50h24"/><path d="M41 49l6-4"/>',
+  squat: '<circle cx="32" cy="12" r="4"/><path d="M32 17v15"/><path d="M23 27l9 5 9-5"/><path d="M24 37h16"/><path d="M24 37l-7 9"/><path d="M40 37l7 9"/><path d="M15 47h13"/><path d="M36 47h13"/>',
+  hip: '<circle cx="28" cy="15" r="4"/><path d="M28 20v14"/><path d="M18 36h18"/><path d="M18 36l-6 11"/><path d="M36 36l12 2"/><path d="M46 38l6 9"/><path d="M11 48h16"/><path d="M43 48h11"/>',
+  stretch: '<circle cx="29" cy="12" r="4"/><path d="M29 17l2 17"/><path d="M20 26l11 8 12-7"/><path d="M31 34l-13 14"/><path d="M32 35l15 2"/><path d="M15 49h15"/><path d="M45 38v12"/>',
+  birdDog: '<circle cx="24" cy="19" r="4"/><path d="M28 23h18"/><path d="M20 25l-7 10"/><path d="M34 25l-6 14"/><path d="M46 23l7-8"/><path d="M46 26l11 6"/><path d="M12 36h14"/>',
+  karate: '<circle cx="30" cy="13" r="4"/><path d="M30 18v18"/><path d="M19 25l11 5 14-8"/><path d="M30 36l-11 13"/><path d="M31 36l14 9"/><path d="M16 50h13"/><path d="M42 46h10"/>',
+  cardio: '<path d="M14 42c8-16 18-16 24 0"/><path d="M38 42c3-8 7-12 13-12"/><path d="M13 43h38"/><path d="M20 31l7 7 9-15 7 10"/><circle cx="16" cy="43" r="3"/><circle cx="50" cy="43" r="3"/>',
+  walk: '<circle cx="30" cy="13" r="4"/><path d="M30 18l-4 15"/><path d="M26 28l-8 5"/><path d="M28 33l-10 17"/><path d="M29 33l14 5"/><path d="M42 38l5 11"/><path d="M15 50h12"/><path d="M43 50h10"/>',
+  mobility: '<path d="M18 37c7-16 21-20 31-9"/><path d="M45 25h7v7"/><path d="M47 44c-8 10-23 9-30-1"/><path d="M20 46h-7v-7"/><circle cx="32" cy="36" r="4"/>',
+  breath: '<path d="M32 14c-7 8-12 14-12 22a12 12 0 0 0 24 0c0-8-5-14-12-22Z"/><path d="M32 25v18"/><path d="M24 35h16"/>',
+  hinge: '<circle cx="29" cy="13" r="4"/><path d="M29 18l13 14"/><path d="M17 32h25"/><path d="M28 29l-8 18"/><path d="M39 32l7 15"/><path d="M16 48h12"/><path d="M42 48h12"/>',
+  pushup: '<circle cx="19" cy="31" r="4"/><path d="M23 31h25"/><path d="M29 35l-6 11"/><path d="M44 35l8 11"/><path d="M12 47h46"/>',
+  row: '<circle cx="26" cy="15" r="4"/><path d="M26 20l-7 19"/><path d="M20 36h26"/><path d="M34 29l12 7"/><path d="M17 40h32"/><path d="M23 42l-5 8"/><path d="M42 42l7 8"/>',
+  plank: '<circle cx="20" cy="26" r="4"/><path d="M24 27h28"/><path d="M31 30l-9 14"/><path d="M49 30l6 14"/><path d="M17 45h42"/>',
+  tibialis: '<path d="M30 13v25"/><path d="M30 38l14 2"/><path d="M42 40l7-5"/><path d="M44 43l7 1"/><path d="M21 50h29"/><path d="M25 20h10"/>',
+  stance: '<circle cx="32" cy="12" r="4"/><path d="M32 17v18"/><path d="M20 25l12 5 12-5"/><path d="M31 35l-12 13"/><path d="M33 35l13 13"/><path d="M15 49h14"/><path d="M42 49h14"/><path d="M13 35h7M44 35h7"/>',
+  step: '<path d="M16 47h36"/><path d="M22 38l11-9 11 9"/><path d="M33 29v19"/><path d="M15 31h12"/><path d="M49 31H37"/><path d="M23 28l-7 3 7 3"/><path d="M41 28l7 3-7 3"/>',
+  punch: '<circle cx="29" cy="13" r="4"/><path d="M29 18v17"/><path d="M18 25l11 5"/><path d="M30 26h21"/><path d="M29 35l-11 14"/><path d="M31 35l13 14"/><path d="M15 50h12"/><path d="M41 50h12"/>',
+  counter: '<circle cx="33" cy="13" r="4"/><path d="M33 18v17"/><path d="M20 24l13 6"/><path d="M34 25h18"/><path d="M33 35l-13 14"/><path d="M34 35l11 14"/><path d="M13 37l-6-5 6-5"/><path d="M8 32h14"/>',
+  angle: '<path d="M15 49h36"/><path d="M22 43l12-14 11 14"/><path d="M34 29v19"/><path d="M34 29l13-13"/><path d="M47 16h-9"/><path d="M47 16v9"/><circle cx="34" cy="22" r="3"/>',
+  shadow: '<circle cx="24" cy="13" r="4"/><path d="M24 18v18"/><path d="M15 25l9 5 12-8"/><path d="M24 36l-10 13"/><path d="M26 36l12 10"/><path d="M39 17c7 5 9 15 4 23"/><path d="M44 40h-7v-7"/>'
+};
+
 const app = document.querySelector("#app");
 let state = loadState();
 let route = "today";
@@ -255,11 +280,11 @@ function renderToday() {
         </div>
         <div class="card">
           <h2>Full session</h2>
-          ${renderList(card.full)}
+          ${renderList(card.full, card)}
         </div>
         <div class="card">
           <h2>Minimum version</h2>
-          ${renderList(card.minimum)}
+          ${renderList(card.minimum, card)}
         </div>
         <div class="card">
           <h2>Pain rule</h2>
@@ -503,8 +528,54 @@ function renderPainSliders(prefix = "") {
     </div>`).join("")}</div>`;
 }
 
-function renderList(items) {
-  return `<ol class="exercise-list">${items.map((item, index) => `<li data-index="${index + 1}"><span>${item}</span></li>`).join("")}</ol>`;
+function diagramKeyForItem(item, card = currentCard()) {
+  if (card.key === "sunday-review") return "";
+  const text = item.toLowerCase();
+  if (text.includes("ankle")) return "ankle";
+  if (text.includes("calf")) return "calf";
+  if (text.includes("spanish squat") || text.includes("wall sit") || text.includes("goblet squat")) return "squat";
+  if (text.includes("90/90") || text.includes("hip switches")) return "hip";
+  if (text.includes("hip flexor") || text.includes("couch stretch")) return "stretch";
+  if (text.includes("bird dog")) return "birdDog";
+  if (text.includes("karate class") || text.includes("sparring")) return "karate";
+  if (text.includes("zone 2") || text.includes("cardio") || text.includes("bike") || text.includes("elliptical") || text.includes("rower")) return "cardio";
+  if (text.includes("walk")) return "walk";
+  if (text.includes("mobility") || text.includes("warm-up") || text.includes("easy movement") || text.includes("joint prep")) return "mobility";
+  if (text.includes("breathing")) return "breath";
+  if (text.includes("romanian deadlift")) return "hinge";
+  if (text.includes("split squat")) return "squat";
+  if (text.includes("push-up")) return "pushup";
+  if (text.includes("row")) return "row";
+  if (text.includes("side plank")) return "plank";
+  if (text.includes("tibialis")) return "tibialis";
+  if (text.includes("kamae bounce")) return "stance";
+  if (text.includes("step-in") || text.includes("step-out")) return "step";
+  if (text.includes("kizami")) return "punch";
+  if (text.includes("retreat")) return "counter";
+  if (text.includes("angle exit")) return "angle";
+  if (text.includes("shadow kumite")) return "shadow";
+  return "";
+}
+
+function renderExerciseDiagram(item, card = currentCard()) {
+  const key = diagramKeyForItem(item, card);
+  const paths = key ? DIAGRAM_PATHS[key] : "";
+  if (!paths) return "";
+  return `<span class="diagram-shell" aria-hidden="true"><svg class="exercise-diagram" viewBox="0 0 64 64" focusable="false">${paths}</svg></span>`;
+}
+
+function renderListItem(item, index, card = currentCard()) {
+  const diagram = renderExerciseDiagram(item, card);
+  return `<li class="${diagram ? "has-diagram" : "no-diagram"}" data-index="${index + 1}">${diagram}<span>${escapeHtml(item)}</span></li>`;
+}
+
+function renderList(items, card = currentCard()) {
+  return `<ol class="exercise-list">${items.map((item, index) => renderListItem(item, index, card)).join("")}</ol>`;
+}
+
+function renderSessionItem(item, card = currentCard()) {
+  const diagram = renderExerciseDiagram(item, card);
+  return `<label class="check-item ${diagram ? "has-diagram" : "no-diagram"}"><input type="checkbox" />${diagram}<span>${escapeHtml(item)}</span></label>`;
 }
 
 function renderInsights() {
@@ -865,7 +936,7 @@ function openSession(kind) {
       <p class="subtle">Pain abort: ${card.painRule}</p>
       <div class="timer" data-timer>${formatSeconds(timerSeconds)}</div>
       <div class="stack">
-        ${items.map(item => `<label class="check-item"><input type="checkbox" /><span>${item}</span></label>`).join("")}
+        ${items.map(item => renderSessionItem(item, card)).join("")}
       </div>
       <div class="actions" style="margin-top:16px">
         <div class="action-row">
