@@ -141,6 +141,26 @@ function todayDate() {
   return new Date();
 }
 
+function localDateKey(date = todayDate()) {
+  const value = new Date(date);
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function sameLocalDay(value, key = localDateKey()) {
+  return localDateKey(new Date(value)) === key;
+}
+
+function todayLog(card = currentCard()) {
+  return state.logs.find(log => log.card === card.key && sameLocalDay(log.date));
+}
+
+function isCompletedLog(log) {
+  return ["DONE", "MINIMUM"].includes(log?.type);
+}
+
 function dayKey(date = todayDate()) {
   return date.getDay();
 }
@@ -201,6 +221,9 @@ function renderToday() {
   const card = currentCard();
   const week = weekNumber();
   const lastLog = state.logs[0];
+  const todaysLog = todayLog(card);
+  const completedToday = isCompletedLog(todaysLog);
+  const skippedToday = todaysLog?.type === "SKIPPED";
   return `
     <main class="screen" data-screen="today">
       ${renderTopbar("Today", `${currentPhase(week)} · Week ${week}`)}
@@ -210,11 +233,12 @@ function renderToday() {
           <span class="pill">${card.time}</span>
           <span class="pill">${card.label}</span>
         </div>
-        <h2 class="command">${card.command}</h2>
-        <p class="subtle">${card.reason}</p>
+        <h2 class="command">${completedToday ? "Completed today." : skippedToday ? "Skipped today. No debt." : card.command}</h2>
+        <p class="subtle">${completedToday ? "You can update today’s entry, but the app will not create duplicate Sunday reviews." : skippedToday ? "Continue with the next scheduled card. Update only if the situation changed." : card.reason}</p>
+        ${todaysLog ? `<div class="today-status ${todaysLog.type.toLowerCase()}"><strong>${todaysLog.type}</strong><span>${formatLogLine(todaysLog)}</span></div>` : ""}
         <div class="actions wide">
-          <button class="btn primary" data-start="full">Start full</button>
-          <button class="btn secondary" data-start="minimum">Minimum</button>
+          <button class="btn primary" data-start="full">${completedToday ? "Update entry" : "Start full"}</button>
+          <button class="btn secondary" ${completedToday ? 'data-route="progress"' : 'data-start="minimum"'}>${completedToday ? "View analytics" : "Minimum"}</button>
         </div>
       </section>
 
@@ -241,8 +265,8 @@ function renderToday() {
           ${renderReviewInputs(card)}
           <div class="actions" style="margin-top:14px">
             <div class="action-row">
-              <button class="btn primary" data-log="DONE">Done</button>
-              <button class="btn warning" data-log="MINIMUM">Minimum</button>
+              <button class="btn primary" data-log="DONE">${completedToday ? "Update done" : "Done"}</button>
+              <button class="btn warning" data-log="MINIMUM">${completedToday ? "Update minimum" : "Minimum"}</button>
             </div>
             <button class="btn danger" data-log="SKIPPED">Skip — no debt</button>
           </div>
@@ -506,6 +530,8 @@ function logSession(type) {
     energy: Number(state.energy || 0),
     note: state.note || ""
   };
+  const todayKey = localDateKey();
+  state.logs = state.logs.filter(existing => !(existing.card === log.card && sameLocalDay(existing.date, todayKey)));
   state.logs = [log, ...state.logs].slice(0, 180);
   if (type === "SKIPPED") state.readiness = state.readiness === "GREEN" ? "YELLOW" : state.readiness;
   state.note = "";
@@ -555,6 +581,7 @@ function openSession(kind) {
 
 function openReviewSession() {
   const card = currentCard();
+  const existing = todayLog(card);
   const overlay = document.createElement("div");
   overlay.className = "session-overlay";
   overlay.innerHTML = `
@@ -567,10 +594,11 @@ function openReviewSession() {
       <div class="card compact" style="margin-top:14px">
         ${renderReviewInputs(card)}
       </div>
+      ${existing ? `<div class="today-status ${existing.type.toLowerCase()}" style="margin-top:14px"><strong>Already logged today</strong><span>${formatLogLine(existing)}</span></div>` : ""}
       <div class="actions" style="margin-top:16px">
-        <button class="btn primary" data-session-log="DONE">Save review</button>
-        <button class="btn warning" data-session-log="MINIMUM">Minimum</button>
-        <button class="btn danger" data-session-log="SKIPPED">Skip — no debt</button>
+        <button class="btn primary" data-session-log="DONE">${existing ? "Update review" : "Save review"}</button>
+        <button class="btn warning" data-session-log="MINIMUM">${existing ? "Update minimum" : "Minimum"}</button>
+        <button class="btn danger" data-session-log="SKIPPED">${existing ? "Mark skipped instead" : "Skip — no debt"}</button>
       </div>
     </section>`;
   document.body.appendChild(overlay);

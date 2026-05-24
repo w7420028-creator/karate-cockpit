@@ -63,4 +63,12 @@ const progress = context.renderProgress();
 for (const token of ['Coach decision', 'Bodyweight', 'Pain trend', 'Readiness + recovery']) {
   if (!progress.includes(token)) throw new Error(`progress missing ${token}`);
 }
+
+// Same-day logging should update, not duplicate.
+context.state.logs = [];
+context.logSession('DONE');
+context.logSession('MINIMUM');
+if (context.state.logs.length !== 1) throw new Error('same-day duplicate log was not replaced');
+if (context.state.logs[0].type !== 'MINIMUM') throw new Error('same-day update did not keep latest log');
+
 console.log('qa-smoke passed');

@@ -447,3 +447,16 @@ textarea:focus { border-color: hsl(355 78% 52% / .7); box-shadow: 0 0 0 4px hsl(
 .decision.green { background: hsl(145 60% 45% / .16); border-color: hsl(145 60% 45% / .34); }
 .decision.yellow { background: hsl(42 92% 55% / .16); border-color: hsl(42 92% 55% / .34); }
 .decision.red { background: hsl(355 78% 52% / .16); border-color: hsl(355 78% 52% / .34); }
+.today-status {
+  display: grid;
+  gap: 4px;
+  margin: 16px 0;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 12px 14px;
+  background: hsl(220 13% 9% / .66);
+}
+.today-status strong { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+.today-status span { color: var(--secondary); font-size: 13px; line-height: 1.35; }
+.today-status.done, .today-status.minimum { border-color: hsl(145 60% 45% / .42); background: hsl(145 60% 45% / .12); }
+.today-status.skipped { border-color: hsl(42 92% 55% / .42); background: hsl(42 92% 55% / .12); }
