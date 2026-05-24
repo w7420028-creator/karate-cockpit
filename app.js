@@ -129,7 +129,7 @@ function loadState() {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
     return { ...DEFAULT_STATE, ...parsed, pain: { ...DEFAULT_STATE.pain, ...(parsed?.pain || {}) }, logs: parsed?.logs || [] };
   } catch {
-    return structuredClone(DEFAULT_STATE);
+    return JSON.parse(JSON.stringify(DEFAULT_STATE));
   }
 }
 
@@ -291,10 +291,11 @@ function weightTrend(logs) {
     .filter(log => numericWeight(log.weight) !== null)
     .map(log => ({ date: new Date(log.date), value: numericWeight(log.weight) }))
     .sort((a, b) => a.date - b.date);
-  const latest = points.at(-1)?.value ?? numericWeight(state.weight);
+  const latestPoint = points.length ? points[points.length - 1] : null;
+  const latest = latestPoint?.value ?? numericWeight(state.weight);
   const recent = points.filter(point => Date.now() - point.date.getTime() <= 30 * 24 * 60 * 60 * 1000);
   const basis = recent.length >= 2 ? recent : points;
-  const delta = basis.length >= 2 ? basis.at(-1).value - basis[0].value : null;
+  const delta = basis.length >= 2 ? basis[basis.length - 1].value - basis[0].value : null;
   return {
     latest: latest === null || latest === undefined ? "" : latest.toFixed(1),
     delta: delta === null ? "—" : `${delta >= 0 ? "+" : ""}${delta.toFixed(1)} kg`,
@@ -309,7 +310,7 @@ function averagePain(logs, limit = 7) {
 }
 
 function averageEnergy(logs, limit = 7) {
-  const values = logs.map(log => Number(log.energy)).filter(value => Number.isFinite(value) && value > 0).slice(0, limit);
+  const values = logs.map(log => Number(log.energy)).filter(value => Number.isFinite(value) && value >= 0).slice(0, limit);
   if (!values.length) return Number.isFinite(Number(state.energy)) ? Number(state.energy) : null;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
@@ -423,7 +424,7 @@ function renderLogRow(log) {
   const date = new Date(log.date);
   return `<div class="log-row">
     <div class="date">${date.toLocaleDateString(undefined, { weekday: "short", day: "2-digit" })}</div>
-    <div><div class="kind">${log.type}</div><div class="pain">${formatPain(log.pain)}</div></div>
+    <div><div class="kind">${log.type}</div><div class="pain">${formatMetricLog(log)}</div></div>
     <span class="pill ${readinessClass(log.readiness)}">${log.readiness}</span>
   </div>`;
 }
@@ -494,7 +495,7 @@ function bindCommonEvents() {
 
 function logSession(type) {
   const log = {
-    id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`,
+    id: globalThis.crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}`,
     date: new Date().toISOString(),
     card: currentCard().key,
     type,
@@ -632,6 +633,14 @@ function formatPain(pain) {
   return `knees ${pain.knees} · Achilles ${pain.achilles} · hips ${pain.hips} · back ${pain.lowerBack}`;
 }
 
+function formatMetricLog(log) {
+  const parts = [formatPain(log.pain)];
+  if (log.weight) parts.push(`${log.weight} kg`);
+  if (Number.isFinite(Number(log.energy))) parts.push(`energy ${log.energy}`);
+  if (log.note) parts.push(log.note);
+  return parts.join(" · ");
+}
+
 function formatLogLine(log) {
   const date = new Date(log.date);
   return `${date.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" })} · ${log.readiness} · ${formatPain(log.pain)}`;
@@ -648,7 +657,7 @@ function showToast(message) {
 }
 
 function escapeHtml(value) {
-  return value.replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
+  return String(value).replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
 }
 
 if ("serviceWorker" in navigator) {
