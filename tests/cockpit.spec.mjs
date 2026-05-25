@@ -76,7 +76,7 @@ test.describe('Karate Cockpit V1', () => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Progress' }).tap();
 
-    await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Analytics', exact: true })).toBeVisible();
     await expect(page.getByText('Coach decision')).toBeVisible();
     await expect(page.getByText('93.8', { exact: true })).toBeVisible();
     await expect(page.getByText('-0.7 kg')).toBeVisible();
@@ -91,6 +91,87 @@ test.describe('Karate Cockpit V1', () => {
     await expect(page.locator('[data-chart="energy-trend"]')).toContainText('7 /10');
     await expect(page.locator('[data-chart="consistency"]')).toContainText('2/14');
     await expect(page.locator('[data-chart="readiness"]')).toContainText('1/1/0');
+  });
+
+  test('logging keeps more than 180 historical entries and preserves existing state', async ({ page }) => {
+    await setAppDate(page, '2026-06-02T07:30:00+02:00');
+    const oldLogs = Array.from({ length: 181 }, (_, index) => ({
+      id: `old-${index}`,
+      date: new Date(Date.parse('2026-05-25T07:00:00+02:00') - index * 86400000).toISOString(),
+      card: 'monday-karate',
+      type: 'DONE',
+      readiness: 'GREEN',
+      pain: { knees: 0, achilles: 0, hips: 0, lowerBack: 0 },
+      weight: '',
+      energy: 7,
+      note: `old ${index}`
+    }));
+    await seedState(page, {
+      readiness: 'GREEN',
+      pain: defaultPain,
+      sparring: 0,
+      weight: '94.0',
+      energy: 7,
+      note: 'new day',
+      logs: oldLogs
+    });
+
+    await page.goto('/');
+    await page.getByRole('button', { name: /^Done$/ }).tap();
+
+    const state = await page.evaluate(() => JSON.parse(localStorage.getItem('karate-cockpit-v1')));
+    expect(state.logs).toHaveLength(182);
+    expect(state.logs[0].card).toBe('tuesday-recovery');
+    expect(state.logs.at(-1).id).toBe('old-180');
+  });
+
+  test('skipped logs can record a holiday reason', async ({ page }) => {
+    await setAppDate(page, '2026-06-02T07:30:00+02:00');
+    await page.goto('/');
+
+    await page.locator('#skip-reason-category').selectOption('holiday');
+    await page.locator('#skip-reason-text').fill('Pentecost holiday');
+    await page.getByRole('button', { name: 'Skip — no debt' }).tap();
+
+    await expect(page.getByText('Skipped today. No debt.')).toBeVisible();
+    await expect(page.locator('.today-status').filter({ hasText: 'skip: Holiday — Pentecost holiday' })).toBeVisible();
+    const state = await page.evaluate(() => JSON.parse(localStorage.getItem('karate-cockpit-v1')));
+    expect(state.logs).toHaveLength(1);
+    expect(state.logs[0].type).toBe('SKIPPED');
+    expect(state.logs[0].skipReason).toEqual({ category: 'holiday', text: 'Pentecost holiday' });
+  });
+
+  test('analytics exports all logs as raw JSON and flattened CSV', async ({ page }) => {
+    await setAppDate(page, '2026-06-07T20:30:00+02:00');
+    await seedState(page, {
+      readiness: 'GREEN',
+      pain: defaultPain,
+      sparring: 0,
+      weight: '93.8',
+      energy: 7,
+      note: '',
+      logs: [
+        { id: 'skip', date: '2026-06-06T18:30:00+02:00', card: 'saturday-optional', type: 'SKIPPED', readiness: 'YELLOW', pain: { knees: 1, achilles: 1, hips: 0, lowerBack: 0 }, weight: '', energy: 5, note: '', skipReason: { category: 'holiday', text: 'Pentecost holiday' } },
+        { id: 'done', date: '2026-06-05T18:30:00+02:00', card: 'friday-karate', type: 'DONE', readiness: 'GREEN', pain: { knees: 0, achilles: 1, hips: 0, lowerBack: 0 }, weight: '93.8', energy: 7, note: 'kizami, sharp' }
+      ]
+    });
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Progress' }).tap();
+
+    await expect(page.getByRole('heading', { name: 'Data export' })).toBeVisible();
+    await expect(page.getByText('Total logs')).toBeVisible();
+
+    await expect(page.getByRole('button', { name: 'Export JSON' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Export CSV' })).toBeEnabled();
+    const exported = await page.evaluate(() => ({
+      json: JSON.parse(exportLogsAsJson()),
+      csv: exportLogsAsCsv()
+    }));
+    expect(exported.json.logCount).toBe(2);
+    expect(exported.json.logs.map(log => log.id)).toEqual(['skip', 'done']);
+    expect(exported.csv).toContain('skip_reason_category,skip_reason_text');
+    expect(exported.csv).toContain('holiday,Pentecost holiday');
+    expect(exported.csv).toContain('"kizami, sharp"');
   });
 
   test('Insights renders a clear first-marker with a single datapoint', async ({ page }) => {
@@ -166,5 +247,54 @@ test.describe('Karate Cockpit V1', () => {
     expect(state.readiness).toBe('RED');
     expect(state.logs[0].readiness).toBe('RED');
     expect(state.logs[0].pain.knees).toBe(4);
+  });
+
+  test('Skipped holiday logs keep reason and all logs export without truncation', async ({ page }) => {
+    await setAppDate(page, '2026-05-25T08:00:00+02:00');
+    await seedState(page, {
+      readiness: 'GREEN',
+      pain: defaultPain,
+      sparring: 0,
+      weight: '94.0',
+      energy: 7,
+      note: '',
+      skipReason: { category: '', text: '' },
+      logs: Array.from({ length: 181 }, (_, index) => ({
+        id: `old-${index}`,
+        date: new Date(Date.UTC(2026, 4, 24 - index, 7, 0, 0)).toISOString(),
+        card: 'tuesday-recovery',
+        type: 'DONE',
+        readiness: 'GREEN',
+        pain: defaultPain,
+        sparring: 0,
+        weight: '',
+        energy: 7,
+        note: ''
+      }))
+    });
+    await page.goto('/');
+
+    await page.locator('#skip-reason-category').selectOption('holiday');
+    await page.locator('#skip-reason-text').fill('Feiertag');
+    await page.getByRole('button', { name: 'Skip — no debt' }).tap();
+
+    const state = await page.evaluate(() => JSON.parse(localStorage.getItem('karate-cockpit-v1')));
+    expect(state.logs).toHaveLength(182);
+    expect(state.logs[0].type).toBe('SKIPPED');
+    expect(state.logs[0].skipReason).toEqual({ category: 'holiday', text: 'Feiertag' });
+
+    await page.getByRole('button', { name: 'Progress' }).tap();
+    await expect(page.getByText('Data export')).toBeVisible();
+    await expect(page.getByText('182')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Export JSON' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Export CSV' })).toBeEnabled();
+
+    const exported = await page.evaluate(() => ({
+      json: JSON.parse(exportLogsAsJson()).logCount,
+      csv: exportLogsAsCsv()
+    }));
+    expect(exported.json).toBe(182);
+    expect(exported.csv).toContain('skip_reason_category,skip_reason_text');
+    expect(exported.csv).toContain('holiday,Feiertag');
   });
 });

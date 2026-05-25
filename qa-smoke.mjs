@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const source = fs.readFileSync('app.js', 'utf8') + '\nObject.assign(globalThis, { CARDS, state, VAPID_PUBLIC_KEY, renderToday, renderProgress, renderInsights, renderPlan, renderNotifications, pushCapability, urlBase64ToUint8Array, openSession, logSession, weightTrend, averageEnergy, renderReviewInputs, renderList, renderExerciseDiagram, diagramKeyForItem, demoKeyForItem, renderDemoLink, metricPoints });';
+const source = fs.readFileSync('app.js', 'utf8') + '\nObject.assign(globalThis, { CARDS, state, VAPID_PUBLIC_KEY, renderToday, renderProgress, renderInsights, renderPlan, renderNotifications, pushCapability, urlBase64ToUint8Array, openSession, logSession, weightTrend, averageEnergy, renderReviewInputs, renderList, renderExerciseDiagram, diagramKeyForItem, demoKeyForItem, renderDemoLink, metricPoints, exportLogsAsJson, exportLogsAsCsv });';
 function makeEl(tag = 'div') {
   return {
     tag,
@@ -52,7 +52,7 @@ for (let day = 0; day <= 6; day++) {
   }
 }
 const sundayHtml = context.renderReviewInputs(context.CARDS[0]);
-for (const token of ['id="weight"', 'id="energy"', 'data-pain="knees"', 'Best kumite feeling']) {
+for (const token of ['id="weight"', 'id="energy"', 'data-pain="knees"', 'Best kumite feeling', 'data-skip-reason-category', 'value="holiday"']) {
   if (!sundayHtml.includes(token)) throw new Error(`Sunday input missing ${token}`);
 }
 context.state.logs = [
@@ -62,7 +62,7 @@ context.state.logs = [
 if (context.weightTrend(context.state.logs).latest !== '94.0') throw new Error('weight latest failed');
 if (context.averageEnergy(context.state.logs, 7) !== 2.5) throw new Error('energy zero should count');
 const progress = context.renderProgress();
-for (const token of ['Coach decision', 'Bodyweight', 'Pain trend', 'Readiness + recovery', 'Open charts']) {
+for (const token of ['Coach decision', 'Data export', 'Export JSON', 'Export CSV', 'Bodyweight', 'Pain trend', 'Readiness + recovery', 'Open charts']) {
   if (!progress.includes(token)) throw new Error(`progress missing ${token}`);
 }
 const insights = context.renderInsights();
@@ -90,7 +90,7 @@ for (const token of ['One-time iPhone push setup', 'IOS_PUSH_SUBSCRIPTION', 'No 
 if (context.urlBase64ToUint8Array(context.VAPID_PUBLIC_KEY).length !== 65) throw new Error('VAPID public key should decode to a P-256 public key');
 
 const swSource = fs.readFileSync('sw.js', 'utf8');
-for (const token of ['karate-cockpit-v11', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
+for (const token of ['karate-cockpit-v12', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
   if (!swSource.includes(token)) throw new Error(`service worker push coverage missing ${token}`);
 }
 context.state.logs = [context.state.logs[0]];
@@ -103,5 +103,28 @@ context.logSession('DONE');
 context.logSession('MINIMUM');
 if (context.state.logs.length !== 1) throw new Error('same-day duplicate log was not replaced');
 if (context.state.logs[0].type !== 'MINIMUM') throw new Error('same-day update did not keep latest log');
+
+// New logs must not truncate historical analytics data.
+context.state.logs = Array.from({ length: 181 }, (_, index) => ({
+  id: `old-${index}`,
+  date: new Date(Date.now() - (index + 1) * 864e5).toISOString(),
+  card: 'monday-karate',
+  type: 'DONE',
+  readiness: 'GREEN',
+  pain: { knees: 0, achilles: 0, hips: 0, lowerBack: 0 },
+  weight: '',
+  energy: 7,
+  note: ''
+}));
+context.logSession('DONE');
+if (context.state.logs.length !== 182) throw new Error('historical logs were truncated when adding a new log');
+
+context.state.skipReason = { category: 'holiday', text: 'Pentecost holiday' };
+context.logSession('SKIPPED');
+if (context.state.logs[0].skipReason?.category !== 'holiday') throw new Error('skip reason category was not stored');
+if (!context.exportLogsAsJson().includes('"logCount": 182')) throw new Error('JSON export should include all logs');
+const csv = context.exportLogsAsCsv();
+if (!csv.includes('skip_reason_category,skip_reason_text')) throw new Error('CSV export missing skip reason columns');
+if (!csv.includes('holiday,Pentecost holiday')) throw new Error('CSV export missing holiday skip reason');
 
 console.log('qa-smoke passed');

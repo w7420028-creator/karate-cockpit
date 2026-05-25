@@ -37,7 +37,7 @@ body {
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
 }
-button, input, textarea { font: inherit; }
+button, input, textarea, select { font: inherit; }
 button { color: inherit; -webkit-tap-highlight-color: transparent; }
 
 .app-shell {
@@ -310,7 +310,7 @@ input[type="range"] {
   font-weight: 760;
 }
 .field-label span { color: var(--muted); font-size: 12px; font-weight: 650; }
-input[type="text"], input[inputmode="decimal"], #weight {
+input[type="text"], input[inputmode="decimal"], #weight, select {
   width: 100%;
   min-height: 52px;
   border: 1px solid var(--line);
@@ -321,11 +321,21 @@ input[type="text"], input[inputmode="decimal"], #weight {
   outline: none;
   font-weight: 780;
 }
-input[type="text"]:focus, input[inputmode="decimal"]:focus, #weight:focus {
+select { appearance: none; }
+input[type="text"]:focus, input[inputmode="decimal"]:focus, #weight:focus, select:focus {
   border-color: hsl(355 78% 52% / .7);
   box-shadow: 0 0 0 4px hsl(355 78% 52% / .14);
 }
 .energy-row { margin: 16px 0; }
+.skip-reason {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  border: 1px solid hsl(42 92% 55% / .22);
+  border-radius: 20px;
+  padding: 14px;
+  background: hsl(42 92% 55% / .08);
+}
 
 textarea {
   width: 100%;
@@ -339,6 +349,7 @@ textarea {
   outline: none;
 }
 textarea:focus { border-color: hsl(355 78% 52% / .7); box-shadow: 0 0 0 4px hsl(355 78% 52% / .14); }
+
 
 .readiness-strip {
   display: grid;
@@ -647,6 +658,7 @@ summary { color: var(--secondary); cursor: pointer; font-weight: 760; }
 
 @media (min-width: 390px) {
   .actions.wide { grid-template-columns: 1.15fr .85fr; }
+  .export-actions { grid-template-columns: 1fr 1fr; }
   .notify-entry { grid-template-columns: 1fr auto; align-items: center; }
 }
 @media (prefers-reduced-motion: reduce) {

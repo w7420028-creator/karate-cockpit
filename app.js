@@ -116,6 +116,7 @@ const DEFAULT_STATE = {
   weight: "",
   energy: 7,
   note: "",
+  skipReason: { category: "", text: "" },
   logs: []
 };
 
@@ -182,7 +183,13 @@ let pushStatus = "";
 function loadState() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return { ...DEFAULT_STATE, ...parsed, pain: { ...DEFAULT_STATE.pain, ...(parsed?.pain || {}) }, logs: parsed?.logs || [] };
+    return {
+      ...DEFAULT_STATE,
+      ...parsed,
+      pain: { ...DEFAULT_STATE.pain, ...(parsed?.pain || {}) },
+      skipReason: { ...DEFAULT_STATE.skipReason, ...(parsed?.skipReason || {}) },
+      logs: parsed?.logs || []
+    };
   } catch {
     return JSON.parse(JSON.stringify(DEFAULT_STATE));
   }
@@ -351,7 +358,29 @@ function renderReviewInputs(card = currentCard(), prefix = "") {
       <input id="${prefix}energy" data-energy type="range" min="0" max="10" step="1" value="${state.energy ?? 7}" />
     </div>
     <label class="eyebrow" for="${prefix}note">${isSunday ? "Best kumite feeling" : "What felt sharp?"}</label>
-    <textarea id="${prefix}note" data-note maxlength="140" placeholder="e.g. kizami timing">${escapeHtml(state.note || "")}</textarea>`;
+    <textarea id="${prefix}note" data-note maxlength="140" placeholder="e.g. kizami timing">${escapeHtml(state.note || "")}</textarea>
+    ${renderSkipReasonInputs(prefix)}`;
+}
+
+function renderSkipReasonInputs(prefix = "") {
+  const category = state.skipReason?.category || "";
+  const text = state.skipReason?.text || "";
+  const options = [
+    ["", "No skip reason"],
+    ["holiday", "Holiday"],
+    ["rest", "Rest / recovery"],
+    ["injury", "Injury / pain"],
+    ["busy", "Busy / travel"],
+    ["other", "Other"]
+  ];
+  return `
+    <div class="skip-reason" aria-label="Optional skip reason">
+      <label class="field-label" for="${prefix}skip-reason-category">Skip reason <span>only used for SKIPPED logs</span></label>
+      <select id="${prefix}skip-reason-category" data-skip-reason-category>
+        ${options.map(([value, label]) => `<option value="${value}" ${category === value ? "selected" : ""}>${label}</option>`).join("")}
+      </select>
+      <input id="${prefix}skip-reason-text" data-skip-reason-text type="text" maxlength="80" autocomplete="off" placeholder="Optional detail, e.g. Pentecost holiday" value="${escapeHtml(text)}" />
+    </div>`;
 }
 
 function latestWeight() {
@@ -427,6 +456,77 @@ function metricPoints(logs, selector) {
     .map(log => ({ date: new Date(log.date), value: selector(log), log }))
     .filter(point => point.date.toString() !== "Invalid Date" && Number.isFinite(point.value))
     .sort((a, b) => a.date - b.date);
+}
+
+function exportPayload(logs = state.logs) {
+  return {
+    app: "karate-cockpit",
+    version: 1,
+    storageKey: STORAGE_KEY,
+    exportedAt: new Date().toISOString(),
+    logCount: logs.length,
+    logs
+  };
+}
+
+function exportLogsAsJson(logs = state.logs) {
+  return JSON.stringify(exportPayload(logs), null, 2);
+}
+
+function csvEscape(value) {
+  if (value === undefined || value === null) return "";
+  const text = String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function skipReasonCategory(log) {
+  if (!log?.skipReason) return "";
+  if (typeof log.skipReason === "string") return log.skipReason;
+  return log.skipReason.category || "";
+}
+
+function skipReasonText(log) {
+  if (!log?.skipReason || typeof log.skipReason === "string") return "";
+  return log.skipReason.text || "";
+}
+
+function exportLogsAsCsv(logs = state.logs) {
+  const columns = [
+    "id", "date", "card", "type", "readiness", "pain_knees", "pain_achilles", "pain_hips", "pain_lower_back", "sparring", "weight", "energy", "note", "skip_reason_category", "skip_reason_text"
+  ];
+  const rows = logs.map(log => [
+    log.id,
+    log.date,
+    log.card,
+    log.type,
+    log.readiness,
+    log.pain?.knees,
+    log.pain?.achilles,
+    log.pain?.hips,
+    log.pain?.lowerBack,
+    log.sparring,
+    log.weight,
+    log.energy,
+    log.note,
+    skipReasonCategory(log),
+    skipReasonText(log)
+  ]);
+  return [columns, ...rows].map(row => row.map(csvEscape).join(",")).join("\n");
+}
+
+function downloadTrainingData(format) {
+  const isCsv = format === "csv";
+  const content = isCsv ? exportLogsAsCsv() : exportLogsAsJson();
+  const blob = new Blob([content], { type: isCsv ? "text/csv;charset=utf-8" : "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `karate-cockpit-logs-${localDateKey()}.${isCsv ? "csv" : "json"}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  showToast(`${isCsv ? "CSV" : "JSON"} export ready.`);
 }
 
 function clamp(value, min, max) {
@@ -535,6 +635,23 @@ function renderReadinessBars(logs) {
         <span class="bar red" style="width:${pct(stats.red)}"><b>${stats.red}</b></span>
       </div>
     </article>`;
+}
+
+function renderDataExportCard(logs = state.logs) {
+  return `
+    <section class="card export-card" style="margin-top:16px">
+      <h2>Data export</h2>
+      <p class="subtle">Download all local training logs for later analysis. JSON preserves the raw log objects; CSV flattens pain and skip-reason fields.</p>
+      <div class="readiness-strip export-stats" style="margin-top:12px">
+        <div class="metric"><strong>${logs.length}</strong><span>Total logs</span></div>
+        <div class="metric"><strong>${logs.filter(log => log.type === "SKIPPED").length}</strong><span>Skipped</span></div>
+        <div class="metric"><strong>${logs.filter(log => formatSkipReason(log)).length}</strong><span>With reason</span></div>
+      </div>
+      <div class="actions export-actions" style="margin-top:14px">
+        <button class="btn primary" data-export-format="json" ${logs.length ? "" : "disabled"}>Export JSON</button>
+        <button class="btn secondary" data-export-format="csv" ${logs.length ? "" : "disabled"}>Export CSV</button>
+      </div>
+    </section>`;
 }
 
 
@@ -831,6 +948,7 @@ function renderProgress() {
           <button class="btn secondary" data-route="notifications">iPhone notifications</button>
         </div>
       </section>
+      ${renderDataExportCard(logs)}
       <section class="card" style="margin-top:16px">
         <h2>Bodyweight</h2>
         <div class="readiness-strip">
@@ -950,14 +1068,32 @@ function bindCommonEvents() {
     if (value) value.textContent = energy.value;
     saveState();
   });
+  const skipCategory = document.querySelector("[data-skip-reason-category]");
+  if (skipCategory) ["input", "change"].forEach(eventName => skipCategory.addEventListener(eventName, () => {
+    state.skipReason = { ...(state.skipReason || {}), category: skipCategory.value };
+    saveState();
+  }));
+  const skipText = document.querySelector("[data-skip-reason-text]");
+  if (skipText) skipText.addEventListener("input", () => {
+    state.skipReason = { ...(state.skipReason || {}), text: skipText.value.trim() };
+    saveState();
+  });
   document.querySelectorAll("[data-log]").forEach(button => button.addEventListener("click", () => logSession(button.dataset.log)));
   document.querySelectorAll("[data-start]").forEach(button => button.addEventListener("click", () => openSession(button.dataset.start)));
+  document.querySelectorAll("[data-export-format]").forEach(button => button.addEventListener("click", () => downloadTrainingData(button.dataset.exportFormat)));
   document.querySelector("[data-push-subscribe]")?.addEventListener("click", setupPushNotifications);
   document.querySelector("[data-push-copy]")?.addEventListener("click", copyPushSetupCode);
   document.querySelectorAll(".demo-link").forEach(link => {
     link.addEventListener("click", event => event.stopPropagation());
     link.addEventListener("pointerdown", event => event.stopPropagation());
   });
+}
+
+function currentSkipReason() {
+  const category = state.skipReason?.category || "";
+  const text = state.skipReason?.text || "";
+  if (!category && !text) return null;
+  return { category: category || "other", text };
 }
 
 function logSession(type) {
@@ -973,11 +1109,14 @@ function logSession(type) {
     energy: Number(state.energy || 0),
     note: state.note || ""
   };
+  const skipReason = type === "SKIPPED" ? currentSkipReason() : null;
+  if (skipReason) log.skipReason = skipReason;
   const todayKey = localDateKey();
   state.logs = state.logs.filter(existing => !(existing.card === log.card && sameLocalDay(existing.date, todayKey)));
-  state.logs = [log, ...state.logs].slice(0, 180);
+  state.logs = [log, ...state.logs];
   if (type === "SKIPPED") state.readiness = state.readiness === "GREEN" ? "YELLOW" : state.readiness;
   state.note = "";
+  state.skipReason = { category: "", text: "" };
   saveState();
   render();
   showToast(type === "SKIPPED" ? "Skipped. No debt. Continue next card." : `${type} logged locally.`);
@@ -1004,6 +1143,7 @@ function openSession(kind) {
       <div class="stack">
         ${items.map(item => renderSessionItem(item, card)).join("")}
       </div>
+      ${renderSkipReasonInputs("session-")}
       <div class="actions" style="margin-top:16px">
         <div class="action-row">
           <button class="btn primary" data-session-log="${kind === "minimum" ? "MINIMUM" : "DONE"}">${kind === "minimum" ? "Log minimum" : "Done"}</button>
@@ -1014,6 +1154,9 @@ function openSession(kind) {
     </section>`;
   document.body.appendChild(overlay);
   overlay.querySelector("[data-close-session]").addEventListener("click", closeSession);
+  overlay.querySelector("[data-skip-reason-category]")?.addEventListener("input", event => { state.skipReason = { ...(state.skipReason || {}), category: event.target.value }; saveState(); });
+  overlay.querySelector("[data-skip-reason-category]")?.addEventListener("change", event => { state.skipReason = { ...(state.skipReason || {}), category: event.target.value }; saveState(); });
+  overlay.querySelector("[data-skip-reason-text]")?.addEventListener("input", event => { state.skipReason = { ...(state.skipReason || {}), text: event.target.value.trim() }; saveState(); });
   overlay.querySelectorAll("[data-session-log]").forEach(button => button.addEventListener("click", () => {
     closeSession();
     logSession(button.dataset.sessionLog);
@@ -1061,6 +1204,9 @@ function openReviewSession() {
     saveState();
   });
   overlay.querySelector("[data-note]")?.addEventListener("input", event => { state.note = event.target.value.trim(); saveState(); });
+  overlay.querySelector("[data-skip-reason-category]")?.addEventListener("input", event => { state.skipReason = { ...(state.skipReason || {}), category: event.target.value }; saveState(); });
+  overlay.querySelector("[data-skip-reason-category]")?.addEventListener("change", event => { state.skipReason = { ...(state.skipReason || {}), category: event.target.value }; saveState(); });
+  overlay.querySelector("[data-skip-reason-text]")?.addEventListener("input", event => { state.skipReason = { ...(state.skipReason || {}), text: event.target.value.trim() }; saveState(); });
   overlay.querySelectorAll("[data-session-log]").forEach(button => button.addEventListener("click", () => {
     closeSession();
     logSession(button.dataset.sessionLog);
@@ -1108,13 +1254,24 @@ function formatMetricLog(log) {
   const parts = [formatPain(log.pain)];
   if (log.weight) parts.push(`${log.weight} kg`);
   if (Number.isFinite(Number(log.energy))) parts.push(`energy ${log.energy}`);
+  const reason = formatSkipReason(log);
+  if (reason) parts.push(`skip: ${reason}`);
   if (log.note) parts.push(log.note);
   return parts.join(" · ");
 }
 
 function formatLogLine(log) {
   const date = new Date(log.date);
-  return `${date.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" })} · ${log.readiness} · ${formatPain(log.pain)}`;
+  const reason = formatSkipReason(log);
+  return `${date.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" })} · ${log.readiness} · ${formatPain(log.pain)}${reason ? ` · skip: ${reason}` : ""}`;
+}
+
+function formatSkipReason(log) {
+  const category = skipReasonCategory(log);
+  const text = skipReasonText(log);
+  if (!category && !text) return "";
+  const labels = { holiday: "Holiday", rest: "Rest", injury: "Injury", busy: "Busy", other: "Other" };
+  return [labels[category] || category, text].filter(Boolean).join(" — ");
 }
 
 function showToast(message) {

@@ -43,6 +43,47 @@ Deployment:
 - Native Web Push-capable for installed iOS Home Screen PWA reminders.
 - No Telegram/chat-style interface; Telegram should link here only.
 
+## Local data contract
+
+Training data is stored client-side in browser `localStorage` under key `karate-cockpit-v1`.
+
+State shape:
+
+```json
+{
+  "readiness": "GREEN|YELLOW|RED",
+  "pain": { "knees": 0, "achilles": 0, "hips": 0, "lowerBack": 0 },
+  "sparring": 0,
+  "weight": "94.0",
+  "energy": 7,
+  "note": "short text",
+  "skipReason": { "category": "", "text": "" },
+  "logs": []
+}
+```
+
+Each entry in `logs` is one planned card per local day. Re-logging the same card on the same local day updates/replaces that entry instead of duplicating it. Logs are newest-first and intentionally uncapped so long-term analytics are not truncated.
+
+Log entry shape:
+
+```json
+{
+  "id": "uuid-or-timestamp",
+  "date": "ISO-8601 timestamp",
+  "card": "sunday-review|monday-karate|tuesday-recovery|wednesday-strength|thursday-footwork|friday-karate|saturday-optional",
+  "type": "DONE|MINIMUM|SKIPPED",
+  "readiness": "GREEN|YELLOW|RED",
+  "pain": { "knees": 0, "achilles": 0, "hips": 0, "lowerBack": 0 },
+  "sparring": 0,
+  "weight": "94.0",
+  "energy": 7,
+  "note": "short text",
+  "skipReason": { "category": "holiday|rest|injury|busy|other", "text": "optional detail" }
+}
+```
+
+Analytics are derived from these logs: planned-vs-actual can be reconstructed from `date` + `card` + `type`, weight from `weight`, pain from per-area pain values, energy from `energy`, completion mix from `DONE`/`MINIMUM`/`SKIPPED`, and skip classification from `skipReason`. Data is durable for the installed browser profile, including offline use. The Progress screen exports the full uncapped log history as raw JSON or flattened CSV for later analytics. There is no backend sync yet.
+
 ## iOS Web Push reminders
 
 No Cloudflare/backend is used. The public PWA creates an iPhone Web Push subscription locally, exports it as a setup code, and a private GitHub Actions workflow sends reminders with VAPID secrets.
