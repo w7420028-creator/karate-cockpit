@@ -10,7 +10,7 @@ const REMINDERS = [
   { key: 'mon-post', weekday: 1, time: '21:30', title: 'Post-karate check', body: 'Log conditioning, strength effort, and any overload note. No extra training tonight.' },
   { key: 'tue-recovery', weekday: 2, time: '07:30', title: 'Recovery check', body: 'Check muscle soreness and stiffness first. Then choose normal, reduced, mobility, or pause.' },
   { key: 'wed-recovery', weekday: 3, time: '20:00', title: 'Recovery check', body: 'Check soreness and stiffness first. Choose normal, reduced, mobility, or pause from the recovery signal.' },
-  { key: 'thu-recovery', weekday: 4, time: '20:30', title: 'Recovery check', body: 'Check soreness and stiffness. Keep the day light if calves, hips, or knees are still loaded.' },
+  { key: 'thu-recovery', weekday: 4, time: '20:30', title: 'Recovery check', body: 'Check soreness and stiffness. Keep the day light if Unterschenkel, Oberschenkel, or Rücken are still loaded.' },
   { key: 'fri-prep', weekday: 5, time: '08:00', title: 'Karate today', body: '6 min joint prep before class. Later: post-karate conditioning and strength check.' },
   { key: 'fri-post', weekday: 5, time: '21:30', title: 'Post-karate check', body: 'Log conditioning, strength effort, and where the body feels overloaded. Weekend adapts from this.' },
   { key: 'sat-recovery', weekday: 6, time: '09:30', title: 'Recovery first', body: 'Check soreness, stiffness, sleep, and weight before deciding what the day can handle.' },

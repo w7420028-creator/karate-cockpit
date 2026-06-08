@@ -18,6 +18,8 @@ assert.doesNotMatch(byKey['wed-recovery'].title, /Strength/i);
 assert.match(byKey['thu-recovery'].body, /soreness/i);
 assert.match(byKey['thu-recovery'].body, /stiffness/i);
 assert.doesNotMatch(byKey['thu-recovery'].title, /Footwork/i);
+assert.doesNotMatch(byKey['thu-recovery'].body, /calves|hips|knees/i);
+assert.match(byKey['thu-recovery'].body, /Unterschenkel|Oberschenkel|Rücken/i);
 assert.match(byKey['sat-recovery'].body, /soreness/i);
 assert.match(byKey['sat-recovery'].body, /stiffness/i);
 assert.doesNotMatch(byKey['sat-recovery'].body, /optional work/i);

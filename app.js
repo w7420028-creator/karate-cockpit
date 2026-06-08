@@ -63,67 +63,14 @@ const CARDS = {
 
 const DEFAULT_STATE = {
   readiness: "GREEN",
-  pain: { knees: 0, achilles: 0, hips: 0, lowerBack: 0 },
   trainingLoad: { cardio: 0, strength: 0 },
   recovery: { areas: [], soreness: 0, stiffness: 0, recommendation: "normal" },
   sleepHours: "",
-  sparring: 0,
   weight: "",
   waistCm: "",
-  energy: 7,
   note: "",
   skipReason: { category: "", text: "" },
   logs: []
-};
-
-const DIAGRAM_PATHS = {
-  ankle: '<path d="M23 20v18l14 6"/><path d="M21 38h20"/><circle cx="23" cy="16" r="4"/>',
-  calf: '<circle cx="32" cy="13" r="4"/><path d="M32 18v18"/><path d="M24 31l8-13 8 13"/><path d="M28 36l-4 13"/><path d="M36 36l5 13"/><path d="M21 50h24"/><path d="M41 49l6-4"/>',
-  squat: '<circle cx="32" cy="12" r="4"/><path d="M32 17v15"/><path d="M23 27l9 5 9-5"/><path d="M24 37h16"/><path d="M24 37l-7 9"/><path d="M40 37l7 9"/><path d="M15 47h13"/><path d="M36 47h13"/>',
-  hip: '<circle cx="28" cy="15" r="4"/><path d="M28 20v14"/><path d="M18 36h18"/><path d="M18 36l-6 11"/><path d="M36 36l12 2"/><path d="M46 38l6 9"/><path d="M11 48h16"/><path d="M43 48h11"/>',
-  stretch: '<circle cx="29" cy="12" r="4"/><path d="M29 17l2 17"/><path d="M20 26l11 8 12-7"/><path d="M31 34l-13 14"/><path d="M32 35l15 2"/><path d="M15 49h15"/><path d="M45 38v12"/>',
-  birdDog: '<circle cx="24" cy="19" r="4"/><path d="M28 23h18"/><path d="M20 25l-7 10"/><path d="M34 25l-6 14"/><path d="M46 23l7-8"/><path d="M46 26l11 6"/><path d="M12 36h14"/>',
-  karate: '<circle cx="30" cy="13" r="4"/><path d="M30 18v18"/><path d="M19 25l11 5 14-8"/><path d="M30 36l-11 13"/><path d="M31 36l14 9"/><path d="M16 50h13"/><path d="M42 46h10"/>',
-  cardio: '<path d="M14 42c8-16 18-16 24 0"/><path d="M38 42c3-8 7-12 13-12"/><path d="M13 43h38"/><path d="M20 31l7 7 9-15 7 10"/><circle cx="16" cy="43" r="3"/><circle cx="50" cy="43" r="3"/>',
-  walk: '<circle cx="30" cy="13" r="4"/><path d="M30 18l-4 15"/><path d="M26 28l-8 5"/><path d="M28 33l-10 17"/><path d="M29 33l14 5"/><path d="M42 38l5 11"/><path d="M15 50h12"/><path d="M43 50h10"/>',
-  mobility: '<path d="M18 37c7-16 21-20 31-9"/><path d="M45 25h7v7"/><path d="M47 44c-8 10-23 9-30-1"/><path d="M20 46h-7v-7"/><circle cx="32" cy="36" r="4"/>',
-  breath: '<path d="M32 14c-7 8-12 14-12 22a12 12 0 0 0 24 0c0-8-5-14-12-22Z"/><path d="M32 25v18"/><path d="M24 35h16"/>',
-  hinge: '<circle cx="29" cy="13" r="4"/><path d="M29 18l13 14"/><path d="M17 32h25"/><path d="M28 29l-8 18"/><path d="M39 32l7 15"/><path d="M16 48h12"/><path d="M42 48h12"/>',
-  pushup: '<circle cx="19" cy="31" r="4"/><path d="M23 31h25"/><path d="M29 35l-6 11"/><path d="M44 35l8 11"/><path d="M12 47h46"/>',
-  row: '<circle cx="26" cy="15" r="4"/><path d="M26 20l-7 19"/><path d="M20 36h26"/><path d="M34 29l12 7"/><path d="M17 40h32"/><path d="M23 42l-5 8"/><path d="M42 42l7 8"/>',
-  plank: '<circle cx="20" cy="26" r="4"/><path d="M24 27h28"/><path d="M31 30l-9 14"/><path d="M49 30l6 14"/><path d="M17 45h42"/>',
-  tibialis: '<path d="M30 13v25"/><path d="M30 38l14 2"/><path d="M42 40l7-5"/><path d="M44 43l7 1"/><path d="M21 50h29"/><path d="M25 20h10"/>',
-  stance: '<circle cx="32" cy="12" r="4"/><path d="M32 17v18"/><path d="M20 25l12 5 12-5"/><path d="M31 35l-12 13"/><path d="M33 35l13 13"/><path d="M15 49h14"/><path d="M42 49h14"/><path d="M13 35h7M44 35h7"/>',
-  step: '<path d="M16 47h36"/><path d="M22 38l11-9 11 9"/><path d="M33 29v19"/><path d="M15 31h12"/><path d="M49 31H37"/><path d="M23 28l-7 3 7 3"/><path d="M41 28l7 3-7 3"/>',
-  punch: '<circle cx="29" cy="13" r="4"/><path d="M29 18v17"/><path d="M18 25l11 5"/><path d="M30 26h21"/><path d="M29 35l-11 14"/><path d="M31 35l13 14"/><path d="M15 50h12"/><path d="M41 50h12"/>',
-  counter: '<circle cx="33" cy="13" r="4"/><path d="M33 18v17"/><path d="M20 24l13 6"/><path d="M34 25h18"/><path d="M33 35l-13 14"/><path d="M34 35l11 14"/><path d="M13 37l-6-5 6-5"/><path d="M8 32h14"/>',
-  angle: '<path d="M15 49h36"/><path d="M22 43l12-14 11 14"/><path d="M34 29v19"/><path d="M34 29l13-13"/><path d="M47 16h-9"/><path d="M47 16v9"/><circle cx="34" cy="22" r="3"/>',
-  shadow: '<circle cx="24" cy="13" r="4"/><path d="M24 18v18"/><path d="M15 25l9 5 12-8"/><path d="M24 36l-10 13"/><path d="M26 36l12 10"/><path d="M39 17c7 5 9 15 4 23"/><path d="M44 40h-7v-7"/>'
-};
-
-
-const DEMO_LINKS = {
-  ankle: { title: "Knee-to-wall", duration: "1:07", url: "https://www.youtube.com/watch?v=TErX68hudFA" },
-  calf: { title: "Calf raise", duration: "1:48", url: "https://www.youtube.com/watch?v=CtyIVeJH6lI" },
-  spanishSquat: { title: "Spanish squat", duration: "0:10", url: "https://www.youtube.com/watch?v=SZMidXQy7jY" },
-  hipSwitch: { title: "90/90 hips", duration: "0:31", url: "https://www.youtube.com/watch?v=m51AZSXMvEA" },
-  couchStretch: { title: "Couch stretch", duration: "0:53", url: "https://www.youtube.com/watch?v=Fg-lwNBzVV8" },
-  birdDog: { title: "Bird dog", duration: "0:26", url: "https://www.youtube.com/watch?v=ZdAHe9_HeEw" },
-  zone2: { title: "Zone 2", duration: "1:03", url: "https://www.youtube.com/watch?v=lyNKZwrTI48" },
-  mobility: { title: "Mobility", duration: "5:46", url: "https://www.youtube.com/watch?v=G2ciDpFx1GM" },
-  gobletSquat: { title: "Goblet squat", duration: "0:43", url: "https://www.youtube.com/watch?v=Xjo_fY9Hl9w" },
-  rdl: { title: "RDL", duration: "0:42", url: "https://www.youtube.com/watch?v=7j-2w4-P14I" },
-  splitSquat: { title: "Split squat", duration: "0:12", url: "https://www.youtube.com/watch?v=Wcmg-3iHwjQ" },
-  pushup: { title: "Push-up", duration: "0:14", url: "https://www.youtube.com/watch?v=WDIpL0pjun0" },
-  row: { title: "Band row", duration: "0:49", url: "https://www.youtube.com/watch?v=LSkyinhmA8k" },
-  plank: { title: "Side plank", duration: "1:11", url: "https://www.youtube.com/watch?v=N_s9em1xTqU" },
-  tibialis: { title: "Tibialis", duration: "0:42", url: "https://www.youtube.com/watch?v=OPEuhclsTUQ" },
-  stance: { title: "Kamae bounce", duration: "1:32", url: "https://www.youtube.com/watch?v=AqT2tXfbpgg" },
-  step: { title: "Footwork", duration: "0:37", url: "https://www.youtube.com/watch?v=c4FpG5P11gc" },
-  punch: { title: "Kizami entry", duration: "1:51", url: "https://www.youtube.com/watch?v=RPHGhZVQdKY" },
-  counter: { title: "Retreat counter", duration: "0:53", url: "https://www.youtube.com/watch?v=EKbQZ_C6v6c" },
-  angle: { title: "Angle exit", duration: "1:59", url: "https://www.youtube.com/watch?v=2CSRZvbkxAI" },
-  shadow: { title: "Shadow kumite", duration: "1:51", url: "https://www.youtube.com/watch?v=QY7pJkrGoL4" }
 };
 
 const app = document.querySelector("#app");
@@ -140,7 +87,6 @@ function loadState() {
     return {
       ...DEFAULT_STATE,
       ...parsed,
-      pain: { ...DEFAULT_STATE.pain, ...(parsed?.pain || {}) },
       trainingLoad: { ...DEFAULT_STATE.trainingLoad, ...(parsed?.trainingLoad || {}) },
       recovery: {
         ...DEFAULT_STATE.recovery,
@@ -189,10 +135,6 @@ function dayKey(date = todayDate()) {
 
 function currentCard() {
   return CARDS[dayKey()];
-}
-
-function maxPain(pain = state.pain) {
-  return Math.max(...Object.values(pain).map(Number));
 }
 
 function readinessClass(value = state.readiness) {
@@ -314,7 +256,7 @@ function renderSundayReviewInputs(card = currentCard(), prefix = "") {
       <input id="${prefix}sleep-hours" data-sleep-hours inputmode="decimal" autocomplete="off" placeholder="7.4" value="${escapeHtml(state.sleepHours || "")}" />
     </div>
     <label class="eyebrow" for="${prefix}note">Weekly review note</label>
-    <textarea id="${prefix}note" data-note maxlength="140" placeholder="e.g. recovery good, calves still loaded, next week normal">${escapeHtml(state.note || "")}</textarea>
+    <textarea id="${prefix}note" data-note maxlength="140" placeholder="e.g. recovery good, Rücken settled, next week normal">${escapeHtml(state.note || "")}</textarea>
     ${renderSkipReasonInputs(prefix)}`;
 }
 
@@ -402,7 +344,7 @@ function renderSkipReasonInputs(prefix = "") {
     ["", "No skip reason"],
     ["holiday", "Holiday"],
     ["rest", "Rest / recovery"],
-    ["injury", "Injury / pain"],
+    ["injury", "Injury / health"],
     ["busy", "Busy / travel"],
     ["other", "Other"]
   ];
@@ -461,18 +403,6 @@ function waistTrend(logs) {
   return measurementTrend(logs, log => numericWaist(log.waistCm), "cm", numericWaist(state.waistCm));
 }
 
-function averagePain(logs, limit = 7) {
-  const sample = logs.filter(log => log.pain).slice(0, limit);
-  if (!sample.length) return maxPain();
-  return sample.reduce((sum, log) => sum + maxPain(log.pain), 0) / sample.length;
-}
-
-function averageEnergy(logs, limit = 7) {
-  const values = logs.map(log => Number(log.energy)).filter(value => Number.isFinite(value) && value >= 0).slice(0, limit);
-  if (!values.length) return Number.isFinite(Number(state.energy)) ? Number(state.energy) : null;
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
 function averageMetric(logs, selector, limit = 7) {
   const values = logs
     .map(selector)
@@ -521,24 +451,6 @@ function readinessStats(logs, days = 14) {
     if (key in acc) acc[key] += 1;
     return acc;
   }, { green: 0, yellow: 0, red: 0 });
-}
-
-function painDirection(logs) {
-  const values = logs.filter(log => log.pain).slice(0, 8).map(log => maxPain(log.pain));
-  if (values.length < 4) return "—";
-  const recent = values.slice(0, Math.ceil(values.length / 2)).reduce((a, b) => a + b, 0) / Math.ceil(values.length / 2);
-  const olderValues = values.slice(Math.ceil(values.length / 2));
-  const older = olderValues.reduce((a, b) => a + b, 0) / olderValues.length;
-  if (recent >= older + 1) return "up";
-  if (recent <= older - 1) return "down";
-  return "stable";
-}
-
-function coachDecision({ avgPain, avgEnergy, completed, readiness }) {
-  if (readiness.red > 0 || avgPain >= 4) return { level: "red", text: "Protect tissue next. No plyos, no hard sparring, reduce load." };
-  if ((avgEnergy !== null && avgEnergy <= 4) || avgPain >= 3 || readiness.yellow >= 2) return { level: "yellow", text: "Hold or reduce. Keep karate technical and choose minimum versions." };
-  if (completed >= 3 && avgPain < 3 && (avgEnergy === null || avgEnergy >= 6)) return { level: "green", text: "Stable week. Progress one variable only — never volume, speed, and intensity together." };
-  return { level: "yellow", text: "Not enough signal yet. Keep the plan easy and collect clean data." };
 }
 
 function coachingDecision({ completed, readiness, load, recovery }) {
@@ -682,7 +594,7 @@ function skipReasonText(log) {
 
 function exportLogsAsCsv(logs = state.logs) {
   const columns = [
-    "id", "date", "card", "type", "readiness", "pain_knees", "pain_achilles", "pain_hips", "pain_lower_back", "sparring", "weight", "waist_cm", "energy", "note", "skip_reason_category", "skip_reason_text", "sleep_hours", "load_cardio", "load_strength", "soreness_areas", "soreness", "stiffness", "recommendation"
+    "id", "date", "card", "type", "readiness", "weight", "waist_cm", "note", "skip_reason_category", "skip_reason_text", "sleep_hours", "load_cardio", "load_strength", "soreness_areas", "soreness", "stiffness", "recommendation"
   ];
   const rows = logs.map(log => [
     log.id,
@@ -690,14 +602,8 @@ function exportLogsAsCsv(logs = state.logs) {
     log.card,
     log.type,
     log.readiness,
-    log.pain?.knees,
-    log.pain?.achilles,
-    log.pain?.hips,
-    log.pain?.lowerBack,
-    log.sparring,
     log.weight,
     log.waistCm || "",
-    log.energy,
     log.note,
     skipReasonCategory(log),
     skipReasonText(log),
@@ -844,7 +750,7 @@ function renderDataExportCard(logs = state.logs) {
   return `
     <section class="card export-card" style="margin-top:16px">
       <h2>Data export</h2>
-      <p class="subtle">Download all local training logs for later analysis. JSON preserves the raw log objects; CSV flattens weight, waist, sleep, karate load, recovery, legacy pain/energy, and skip-reason fields.</p>
+      <p class="subtle">Download all local training logs for later analysis. JSON preserves raw log objects; CSV flattens the current weight, waist, sleep, karate load, recovery, and skip-reason fields.</p>
       <div class="readiness-strip export-stats" style="margin-top:12px">
         <div class="metric"><strong>${logs.length}</strong><span>Total logs</span></div>
         <div class="metric"><strong>${logs.filter(log => log.type === "SKIPPED").length}</strong><span>Skipped</span></div>
@@ -858,106 +764,8 @@ function renderDataExportCard(logs = state.logs) {
 }
 
 
-function renderPainSliders(prefix = "") {
-  const labels = [
-    ["knees", "Knees"],
-    ["achilles", "Achilles"],
-    ["hips", "Hips"],
-    ["lowerBack", "Lower back"]
-  ];
-  return `<div class="slider-grid">${labels.map(([key, label]) => `
-    <div class="slider-row">
-      <label for="${prefix}pain-${key}">${label}</label>
-      <span class="value" id="${prefix}value-${key}">${state.pain[key]}</span>
-      <input id="${prefix}pain-${key}" data-pain="${key}" type="range" min="0" max="10" step="1" value="${state.pain[key]}" />
-    </div>`).join("")}</div>`;
-}
-
-function diagramKeyForItem(item, card = currentCard()) {
-  if (card.key === "sunday-review") return "";
-  const text = item.toLowerCase();
-  if (text.includes("ankle")) return "ankle";
-  if (text.includes("calf")) return "calf";
-  if (text.includes("spanish squat") || text.includes("wall sit") || text.includes("goblet squat")) return "squat";
-  if (text.includes("90/90") || text.includes("hip switches")) return "hip";
-  if (text.includes("hip flexor") || text.includes("couch stretch")) return "stretch";
-  if (text.includes("bird dog")) return "birdDog";
-  if (text.includes("karate class") || text.includes("sparring")) return "karate";
-  if (text.includes("zone 2") || text.includes("cardio") || text.includes("bike") || text.includes("elliptical") || text.includes("rower")) return "cardio";
-  if (text.includes("walk")) return "walk";
-  if (text.includes("mobility") || text.includes("warm-up") || text.includes("easy movement") || text.includes("joint prep")) return "mobility";
-  if (text.includes("breathing")) return "breath";
-  if (text.includes("romanian deadlift")) return "hinge";
-  if (text.includes("split squat")) return "squat";
-  if (text.includes("push-up")) return "pushup";
-  if (text.includes("row")) return "row";
-  if (text.includes("side plank")) return "plank";
-  if (text.includes("tibialis")) return "tibialis";
-  if (text.includes("kamae bounce")) return "stance";
-  if (text.includes("step-in") || text.includes("step-out")) return "step";
-  if (text.includes("kizami")) return "punch";
-  if (text.includes("retreat")) return "counter";
-  if (text.includes("angle exit")) return "angle";
-  if (text.includes("shadow kumite")) return "shadow";
-  return "";
-}
-
-function renderExerciseDiagram(item, card = currentCard()) {
-  const key = diagramKeyForItem(item, card);
-  const paths = key ? DIAGRAM_PATHS[key] : "";
-  if (!paths) return "";
-  return `<span class="diagram-shell" aria-hidden="true"><svg class="exercise-diagram" viewBox="0 0 64 64" focusable="false">${paths}</svg></span>`;
-}
-
-function demoKeyForItem(item, card = currentCard()) {
-  if (card.key === "sunday-review") return "";
-  const text = item.toLowerCase();
-  if (text.includes("no make-up") || text.includes("skip without debt") || text.includes("attend lightly")) return "";
-  if (text.includes("ankle")) return "ankle";
-  if (text.includes("tibialis")) return "tibialis";
-  if (text.includes("calf")) return "calf";
-  if (text.includes("spanish squat") || text.includes("wall sit")) return "spanishSquat";
-  if (text.includes("goblet squat")) return "gobletSquat";
-  if (text.includes("split squat")) return "splitSquat";
-  if (text.includes("90/90") || text.includes("hip switches")) return "hipSwitch";
-  if (text.includes("hip flexor") || text.includes("couch stretch")) return "couchStretch";
-  if (text.includes("bird dog")) return "birdDog";
-  if (text.includes("zone 2") || text.includes("cardio") || text.includes("bike") || text.includes("elliptical") || text.includes("rower") || text.includes("breathing")) return "zone2";
-  if (text.includes("mobility") || text.includes("warm-up") || text.includes("easy movement") || text.includes("joint prep")) return "mobility";
-  if (text.includes("romanian deadlift")) return "rdl";
-  if (text.includes("push-up")) return "pushup";
-  if (text.includes("row")) return "row";
-  if (text.includes("side plank")) return "plank";
-  if (text.includes("kamae bounce") || text.includes("karate class") || text.includes("sparring")) return "stance";
-  if (text.includes("step-in") || text.includes("step-out")) return "step";
-  if (text.includes("kizami")) return "punch";
-  if (text.includes("retreat")) return "counter";
-  if (text.includes("angle exit")) return "angle";
-  if (text.includes("shadow kumite")) return "shadow";
-  return "";
-}
-
-function renderDemoLink(item, card = currentCard()) {
-  const key = demoKeyForItem(item, card);
-  const demo = key ? DEMO_LINKS[key] : null;
-  if (!demo) return "";
-  return `<a class="demo-link" href="${demo.url}" target="_blank" rel="noopener noreferrer" aria-label="Watch ${escapeHtml(demo.title)} demo on YouTube">Watch ${escapeHtml(demo.title)} <span>${demo.duration}</span></a>`;
-}
-
-function renderListItem(item, index, card = currentCard()) {
-  const diagram = renderExerciseDiagram(item, card);
-  const demo = renderDemoLink(item, card);
-  return `<li class="${diagram ? "has-diagram" : "no-diagram"}" data-index="${index + 1}">${diagram}<div class="exercise-copy"><span>${escapeHtml(item)}</span>${demo}</div></li>`;
-}
-
-function renderList(items, card = currentCard()) {
-  return `<ol class="exercise-list">${items.map((item, index) => renderListItem(item, index, card)).join("")}</ol>`;
-}
-
-function renderSessionItem(item, card = currentCard()) {
-  const diagram = renderExerciseDiagram(item, card);
-  const demo = renderDemoLink(item, card);
-  return `<div class="check-item ${diagram ? "has-diagram" : "no-diagram"}"><input type="checkbox" aria-label="${escapeHtml(item)}" />${diagram}<div class="exercise-copy"><span>${escapeHtml(item)}</span>${demo}</div></div>`;
+function renderList(items) {
+  return `<ol class="plain-list">${items.map((item, index) => `<li data-index="${index + 1}">${escapeHtml(item)}</li>`).join("")}</ol>`;
 }
 
 function renderInsights() {
@@ -984,10 +792,10 @@ function renderInsights() {
       <section class="chart-stack" aria-label="Coaching visualizations">
         ${renderSparkChart({ title: "Weight trend", subtitle: "Bodyweight direction, not daily noise.", points: weightPoints, unit: "kg", tone: "weight" })}
         ${renderSparkChart({ title: "Waist trend", subtitle: "Weekly Bauchumfang for body transformation signal.", points: waistPoints, unit: "cm", tone: "weight" })}
-        ${renderSparkChart({ title: "Cardio load", subtitle: `Post-karate conditioning effort · avg ${formatAverage(load.avgCardio)}/10.`, points: cardioPoints, unit: "/10", tone: "pain", min: 0, max: 10 })}
-        ${renderSparkChart({ title: "Strength load", subtitle: `Post-karate strength effort · avg ${formatAverage(load.avgStrength)}/10.`, points: strengthPoints, unit: "/10", tone: "energy", min: 0, max: 10 })}
-        ${renderSparkChart({ title: "Soreness trend", subtitle: `Between-karate soreness · avg ${formatAverage(recovery.avgSoreness)}/10.`, points: sorenessPoints, unit: "/10", tone: "pain", min: 0, max: 10 })}
-        ${renderSparkChart({ title: "Stiffness trend", subtitle: `Between-karate stiffness · avg ${formatAverage(recovery.avgStiffness)}/10.`, points: stiffnessPoints, unit: "/10", tone: "energy", min: 0, max: 10 })}
+        ${renderSparkChart({ title: "Cardio load", subtitle: `Post-karate conditioning effort · avg ${formatAverage(load.avgCardio)}/10.`, points: cardioPoints, unit: "/10", tone: "load-high", min: 0, max: 10 })}
+        ${renderSparkChart({ title: "Strength load", subtitle: `Post-karate strength effort · avg ${formatAverage(load.avgStrength)}/10.`, points: strengthPoints, unit: "/10", tone: "load-stable", min: 0, max: 10 })}
+        ${renderSparkChart({ title: "Soreness trend", subtitle: `Between-karate soreness · avg ${formatAverage(recovery.avgSoreness)}/10.`, points: sorenessPoints, unit: "/10", tone: "load-high", min: 0, max: 10 })}
+        ${renderSparkChart({ title: "Stiffness trend", subtitle: `Between-karate stiffness · avg ${formatAverage(recovery.avgStiffness)}/10.`, points: stiffnessPoints, unit: "/10", tone: "load-stable", min: 0, max: 10 })}
         ${renderConsistencyChart(logs)}
         ${renderReadinessBars(logs)}
       </section>
@@ -1230,7 +1038,7 @@ function renderLogRow(log) {
   const date = new Date(log.date);
   return `<div class="log-row">
     <div class="date">${date.toLocaleDateString(undefined, { weekday: "short", day: "2-digit" })}</div>
-    <div><div class="kind">${log.type}</div><div class="pain">${formatMetricLog(log)}</div></div>
+    <div><div class="kind">${log.type}</div><div class="metric-detail">${formatMetricLog(log)}</div></div>
     <span class="pill ${readinessClass(log.readiness)}">${log.readiness}</span>
   </div>`;
 }
@@ -1254,13 +1062,6 @@ function bindCommonEvents() {
     saveState();
     render();
   }));
-  document.querySelectorAll("[data-pain]").forEach(input => input.addEventListener("input", () => {
-    const key = input.dataset.pain;
-    state.pain[key] = Number(input.value);
-    const value = document.querySelector(`#value-${key}`);
-    if (value) value.textContent = input.value;
-    saveState();
-  }));
   const note = document.querySelector("[data-note]");
   if (note) note.addEventListener("input", () => {
     state.note = note.value.trim();
@@ -1274,13 +1075,6 @@ function bindCommonEvents() {
   const waistCm = document.querySelector("[data-waist-cm]");
   if (waistCm) waistCm.addEventListener("input", () => {
     state.waistCm = waistCm.value.trim();
-    saveState();
-  });
-  const energy = document.querySelector("[data-energy]");
-  if (energy) energy.addEventListener("input", () => {
-    state.energy = Number(energy.value);
-    const value = document.querySelector("#value-energy");
-    if (value) value.textContent = energy.value;
     saveState();
   });
   document.querySelectorAll("[data-load]").forEach(input => input.addEventListener("input", () => {
@@ -1332,10 +1126,6 @@ function bindCommonEvents() {
   document.querySelectorAll("[data-export-format]").forEach(button => button.addEventListener("click", () => downloadTrainingData(button.dataset.exportFormat)));
   document.querySelector("[data-push-subscribe]")?.addEventListener("click", setupPushNotifications);
   document.querySelector("[data-push-copy]")?.addEventListener("click", copyPushSetupCode);
-  document.querySelectorAll(".demo-link").forEach(link => {
-    link.addEventListener("click", event => event.stopPropagation());
-    link.addEventListener("pointerdown", event => event.stopPropagation());
-  });
 }
 
 function currentSkipReason() {
@@ -1356,12 +1146,9 @@ function logSession(type) {
     card: card.key,
     type,
     readiness,
-    pain: { ...state.pain },
-    sparring: Number(state.sparring || 0),
     weight: state.weight || "",
     waistCm: state.waistCm || "",
     sleepHours: state.sleepHours || "",
-    energy: Number(state.energy || 0),
     note: state.note || ""
   };
   if (isKarateCheckin(card)) log.trainingLoad = { ...state.trainingLoad };
@@ -1387,8 +1174,8 @@ function logSession(type) {
   showToast(type === "SKIPPED" ? "Skipped. No debt. Continue next card." : `${type} logged locally.`);
 }
 
-function formatPain(pain) {
-  return `knees ${pain.knees} · Achilles ${pain.achilles} · hips ${pain.hips} · back ${pain.lowerBack}`;
+function formatHistoricalLog() {
+  return "historical check-in";
 }
 
 function formatMetricLog(log) {
@@ -1401,8 +1188,7 @@ function formatMetricLog(log) {
     if (log.recovery.areas?.length) parts.push(log.recovery.areas.join(", "));
     parts.push(`sore ${log.recovery.soreness}/10`, `stiff ${log.recovery.stiffness}/10`, log.recovery.recommendation);
   }
-  if (!log.trainingLoad && !log.recovery && log.pain) parts.push(formatPain(log.pain));
-  if (!log.trainingLoad && !log.recovery && Number.isFinite(Number(log.energy))) parts.push(`energy ${log.energy}`);
+  if (!log.trainingLoad && !log.recovery) parts.push(formatHistoricalLog());
   const reason = formatSkipReason(log);
   if (reason) parts.push(`skip: ${reason}`);
   if (log.note) parts.push(log.note);
@@ -1415,7 +1201,7 @@ function formatLogLine(log) {
   const detail = [];
   if (log.trainingLoad) detail.push(`cardio ${log.trainingLoad.cardio}/10`, `strength ${log.trainingLoad.strength}/10`);
   else if (log.recovery) detail.push(`recovery: ${log.recovery.recommendation}`);
-  else detail.push(formatPain(log.pain));
+  else detail.push(formatHistoricalLog());
   if (reason) detail.push(`skip: ${reason}`);
   return `${date.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" })} · ${log.readiness} · ${detail.join(" · ")}`;
 }

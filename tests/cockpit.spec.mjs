@@ -60,6 +60,9 @@ test.describe('Karate Cockpit V1', () => {
     expect(state.logs[0].weight).toBe('93.8');
     expect(state.logs[0].waistCm).toBe('104.0');
     expect(state.logs[0].sleepHours).toBe('7.2');
+    expect(state.logs[0]).not.toHaveProperty('pain');
+    expect(state.logs[0]).not.toHaveProperty('sparring');
+    expect(state.logs[0]).not.toHaveProperty('energy');
   });
 
   test('Monday karate check-in logs conditioning and strength effort', async ({ page }) => {
@@ -80,6 +83,9 @@ test.describe('Karate Cockpit V1', () => {
     expect(state.logs[0].card).toBe('monday-karate');
     expect(state.logs[0].trainingLoad).toEqual({ cardio: 8, strength: 6 });
     expect(state.logs[0].note).toBe('Unterschenkel heavy, Rücken fine');
+    expect(state.logs[0]).not.toHaveProperty('pain');
+    expect(state.logs[0]).not.toHaveProperty('sparring');
+    expect(state.logs[0]).not.toHaveProperty('energy');
   });
 
   test('Between karate days use recovery soreness check with optional sleep import', async ({ page }) => {
@@ -115,6 +121,9 @@ test.describe('Karate Cockpit V1', () => {
       recommendation: 'mobility'
     });
     expect(state.logs[0].sleepHours).toBe('7.4');
+    expect(state.logs[0]).not.toHaveProperty('pain');
+    expect(state.logs[0]).not.toHaveProperty('sparring');
+    expect(state.logs[0]).not.toHaveProperty('energy');
   });
 
   test('Progress analytics tracks weight, karate load, recovery and coach decision', async ({ page }) => {
@@ -218,6 +227,9 @@ test.describe('Karate Cockpit V1', () => {
     expect(state.logs).toHaveLength(1);
     expect(state.logs[0].type).toBe('SKIPPED');
     expect(state.logs[0].skipReason).toEqual({ category: 'holiday', text: 'Pentecost holiday' });
+    expect(state.logs[0]).not.toHaveProperty('pain');
+    expect(state.logs[0]).not.toHaveProperty('sparring');
+    expect(state.logs[0]).not.toHaveProperty('energy');
   });
 
   test('analytics exports all logs as raw JSON and flattened CSV', async ({ page }) => {

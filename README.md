@@ -58,14 +58,11 @@ State shape:
 ```json
 {
   "readiness": "GREEN|YELLOW|RED",
-  "pain": { "knees": 0, "achilles": 0, "hips": 0, "lowerBack": 0 },
   "trainingLoad": { "cardio": 0, "strength": 0 },
   "recovery": { "areas": [], "soreness": 0, "stiffness": 0, "recommendation": "normal|reduced|mobility|pause" },
   "sleepHours": "7.4",
-  "sparring": 0,
   "weight": "94.0",
   "waistCm": "104.0",
-  "energy": 7,
   "note": "short text",
   "skipReason": { "category": "", "text": "" },
   "logs": []
@@ -83,20 +80,17 @@ Log entry shape:
   "card": "sunday-review|monday-karate|tuesday-recovery|wednesday-strength|thursday-footwork|friday-karate|saturday-optional",
   "type": "DONE|SKIPPED",
   "readiness": "GREEN|YELLOW|RED",
-  "pain": { "knees": 0, "achilles": 0, "hips": 0, "lowerBack": 0 },
   "trainingLoad": { "cardio": 8, "strength": 6 },
   "recovery": { "areas": ["Unterschenkel"], "soreness": 5, "stiffness": 4, "recommendation": "mobility" },
   "sleepHours": "7.4",
-  "sparring": 0,
   "weight": "94.0",
   "waistCm": "104.0",
-  "energy": 7,
   "note": "short text",
   "skipReason": { "category": "holiday|rest|injury|busy|other", "text": "optional detail" }
 }
 ```
 
-Analytics are derived from these logs: bodyweight from `weight`, waist from `waistCm`, karate load from `trainingLoad`, recovery from `recovery`, readiness from `readiness`, completion mix from `DONE`/`SKIPPED`, and skip classification from `skipReason`. Trend Engine v1 computes conservative 7-28 day signals for the top decision card, recovery debt, weekly summary, and transformation signal. Legacy pain/energy fields remain in storage/export so older history is not lost, but they are not active Progress metrics. Existing historical `MINIMUM` logs remain counted/exported. Data is durable for the installed browser profile, including offline use. The Progress screen exports the full uncapped log history as raw JSON or flattened CSV for later analytics. There is no backend sync yet.
+Analytics are derived from these logs: bodyweight from `weight`, waist from `waistCm`, karate load from `trainingLoad`, recovery from `recovery`, readiness from `readiness`, completion mix from `DONE`/`SKIPPED`, and skip classification from `skipReason`. Trend Engine v1 computes conservative 7-28 day signals for the top decision card, recovery debt, weekly summary, and transformation signal. Raw JSON preserves any older stored fields for history, but new logs and flattened CSV use only the current karate/recovery contract. Existing historical `MINIMUM` logs remain counted/exported. Data is durable for the installed browser profile, including offline use. The Progress screen exports the full uncapped log history as raw JSON or flattened CSV for later analytics. There is no backend sync yet.
 
 ## iOS Web Push reminders
 
