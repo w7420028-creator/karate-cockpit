@@ -32,12 +32,14 @@ test.describe('Karate Cockpit V1', () => {
     await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible();
     await expect(page.getByText('Weight and weekly recovery review.')).toBeVisible();
     await expect(page.locator('#weight')).toBeVisible();
+    await expect(page.locator('#waist-cm')).toBeVisible();
     await expect(page.locator('#sleep-hours')).toBeVisible();
     await expect(page.locator('#energy')).toHaveCount(0);
     await expect(page.locator('#pain-knees')).toHaveCount(0);
     await expect(page.getByText('Weekly review note', { exact: true })).toBeVisible();
 
     await page.locator('#weight').fill('94,0');
+    await page.locator('#waist-cm').fill('104.5');
     await page.locator('#sleep-hours').fill('7.2');
     await page.locator('#note').fill('kizami timing');
     await page.getByRole('button', { name: /^Done$/ }).tap();
@@ -50,11 +52,13 @@ test.describe('Karate Cockpit V1', () => {
     expect(logCount).toBe(1);
 
     await page.locator('#weight').fill('93.8');
+    await page.locator('#waist-cm').fill('104.0');
     await page.getByRole('button', { name: 'Update entry' }).tap();
 
     const state = await page.evaluate(() => JSON.parse(localStorage.getItem('karate-cockpit-v1')));
     expect(state.logs).toHaveLength(1);
     expect(state.logs[0].weight).toBe('93.8');
+    expect(state.logs[0].waistCm).toBe('104.0');
     expect(state.logs[0].sleepHours).toBe('7.2');
   });
 
@@ -112,22 +116,30 @@ test.describe('Karate Cockpit V1', () => {
       pain: defaultPain,
       sparring: 0,
       weight: '93.8',
+      waistCm: '104.0',
       energy: 7,
       note: '',
       logs: [
-        { id: '1', date: '2026-06-06T08:30:00+02:00', card: 'saturday-optional', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '', energy: 0, recovery: { areas: ['calves/Achilles'], soreness: 3, stiffness: 2, recommendation: 'normal' }, note: 'loose legs' },
+        { id: '1', date: '2026-06-06T08:30:00+02:00', card: 'saturday-optional', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '', waistCm: '104.0', energy: 0, recovery: { areas: ['calves/Achilles'], soreness: 3, stiffness: 2, recommendation: 'normal' }, note: 'loose legs' },
         { id: '2', date: '2026-06-02T08:00:00+02:00', card: 'tuesday-recovery', type: 'DONE', readiness: 'YELLOW', pain: defaultPain, weight: '', energy: 0, recovery: { areas: ['hips'], soreness: 5, stiffness: 4, recommendation: 'mobility' }, note: 'hips tight' },
         { id: '3', date: '2026-06-01T21:00:00+02:00', card: 'monday-karate', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '93.8', energy: 0, trainingLoad: { cardio: 8, strength: 6 }, note: 'kizami' },
-        { id: '4', date: '2026-05-31T18:30:00+02:00', card: 'sunday-review', type: 'DONE', readiness: 'YELLOW', pain: { knees: 2, achilles: 3, hips: 1, lowerBack: 1 }, weight: '94,5', energy: 5, note: 'distance' }
+        { id: '4', date: '2026-05-31T18:30:00+02:00', card: 'sunday-review', type: 'DONE', readiness: 'YELLOW', pain: { knees: 2, achilles: 3, hips: 1, lowerBack: 1 }, weight: '94,5', waistCm: '105.0', energy: 5, note: 'distance' },
+        { id: '5', date: '2026-05-10T18:30:00+02:00', card: 'sunday-review', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '', waistCm: '106.0', energy: 6, note: 'baseline' }
       ]
     });
     await page.goto('/');
     await page.getByRole('button', { name: 'Progress' }).tap();
 
     await expect(page.getByRole('heading', { name: 'Analytics', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Trend decision' })).toBeVisible();
+    await expect(page.getByText('Recovery debt')).toBeVisible();
+    await expect(page.getByText('Weekly summary')).toBeVisible();
     await expect(page.getByText('Coach decision')).toBeVisible();
     await expect(page.getByText('93.8', { exact: true })).toBeVisible();
     await expect(page.getByText('-0.7 kg')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Transformation' })).toBeVisible();
+    await expect(page.getByText('104.0', { exact: true })).toBeVisible();
+    await expect(page.getByText('-2.0 cm')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Karate load' })).toBeVisible();
     await expect(page.getByText('Avg cardio')).toBeVisible();
     await expect(page.getByText('Avg strength')).toBeVisible();
@@ -143,6 +155,7 @@ test.describe('Karate Cockpit V1', () => {
     await page.getByRole('button', { name: 'Open charts' }).tap();
     await expect(page.getByRole('heading', { name: 'Insights' })).toBeVisible();
     await expect(page.locator('[data-chart="weight-trend"]')).toContainText('93.8 kg');
+    await expect(page.locator('[data-chart="waist-trend"]')).toContainText('104.0 cm');
     await expect(page.locator('[data-chart="cardio-load"]')).toContainText('8 /10');
     await expect(page.locator('[data-chart="strength-load"]')).toContainText('6 /10');
     await expect(page.locator('[data-chart="soreness-trend"] svg[aria-label*="2 datapoints"]')).toBeVisible();
@@ -206,11 +219,12 @@ test.describe('Karate Cockpit V1', () => {
       pain: defaultPain,
       sparring: 0,
       weight: '93.8',
+      waistCm: '104.0',
       energy: 7,
       note: '',
       logs: [
         { id: 'skip', date: '2026-06-06T18:30:00+02:00', card: 'saturday-optional', type: 'SKIPPED', readiness: 'YELLOW', pain: { knees: 1, achilles: 1, hips: 0, lowerBack: 0 }, weight: '', energy: 5, note: '', skipReason: { category: 'holiday', text: 'Pentecost holiday' } },
-        { id: 'done', date: '2026-06-05T18:30:00+02:00', card: 'friday-karate', type: 'DONE', readiness: 'GREEN', pain: { knees: 0, achilles: 1, hips: 0, lowerBack: 0 }, weight: '93.8', energy: 7, note: 'kizami, sharp' }
+        { id: 'done', date: '2026-06-05T18:30:00+02:00', card: 'friday-karate', type: 'DONE', readiness: 'GREEN', pain: { knees: 0, achilles: 1, hips: 0, lowerBack: 0 }, weight: '93.8', waistCm: '104.0', energy: 7, note: 'kizami, sharp' }
       ]
     });
     await page.goto('/');
@@ -229,6 +243,8 @@ test.describe('Karate Cockpit V1', () => {
     expect(exported.json.logCount).toBe(2);
     expect(exported.json.logs.map(log => log.id)).toEqual(['skip', 'done']);
     expect(exported.csv).toContain('skip_reason_category,skip_reason_text');
+    expect(exported.csv).toContain('waist_cm');
+    expect(exported.csv).toContain('104.0');
     expect(exported.csv).toContain('holiday,Pentecost holiday');
     expect(exported.csv).toContain('"kizami, sharp"');
   });

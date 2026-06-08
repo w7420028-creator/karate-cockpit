@@ -69,6 +69,7 @@ const DEFAULT_STATE = {
   sleepHours: "",
   sparring: 0,
   weight: "",
+  waistCm: "",
   energy: 7,
   note: "",
   skipReason: { category: "", text: "" },
@@ -307,6 +308,8 @@ function renderSundayReviewInputs(card = currentCard(), prefix = "") {
     <div class="input-grid">
       <label class="field-label" for="${prefix}weight">Weight <span>${isSunday ? "current bodyweight in kg" : "optional"}</span></label>
       <input id="${prefix}weight" data-weight inputmode="decimal" autocomplete="off" placeholder="94.0" value="${escapeHtml(state.weight || "")}" />
+      <label class="field-label" for="${prefix}waist-cm">Bauchumfang <span>weekly cm</span></label>
+      <input id="${prefix}waist-cm" data-waist-cm inputmode="decimal" autocomplete="off" placeholder="104.0" value="${escapeHtml(state.waistCm || "")}" />
       <label class="field-label" for="${prefix}sleep-hours">Sleep hours <span>optional AutoSleep / Health</span></label>
       <input id="${prefix}sleep-hours" data-sleep-hours inputmode="decimal" autocomplete="off" placeholder="7.4" value="${escapeHtml(state.sleepHours || "")}" />
     </div>
@@ -424,21 +427,38 @@ function numericWeight(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function weightTrend(logs) {
+function numericWaist(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = Number(String(value).replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function measurementTrend(logs, selector, unit, fallbackValue = null, days = 30) {
   const points = logs
-    .filter(log => numericWeight(log.weight) !== null)
-    .map(log => ({ date: new Date(log.date), value: numericWeight(log.weight) }))
+    .filter(log => selector(log) !== null)
+    .map(log => ({ date: new Date(log.date), value: selector(log) }))
+    .filter(point => point.date.toString() !== "Invalid Date")
     .sort((a, b) => a.date - b.date);
   const latestPoint = points.length ? points[points.length - 1] : null;
-  const latest = latestPoint?.value ?? numericWeight(state.weight);
-  const recent = points.filter(point => Date.now() - point.date.getTime() <= 30 * 24 * 60 * 60 * 1000);
+  const latest = latestPoint?.value ?? fallbackValue;
+  const recent = points.filter(point => Date.now() - point.date.getTime() <= days * 24 * 60 * 60 * 1000);
   const basis = recent.length >= 2 ? recent : points;
-  const delta = basis.length >= 2 ? basis[basis.length - 1].value - basis[0].value : null;
+  const deltaValue = basis.length >= 2 ? basis[basis.length - 1].value - basis[0].value : null;
   return {
     latest: latest === null || latest === undefined ? "" : latest.toFixed(1),
-    delta: delta === null ? "—" : `${delta >= 0 ? "+" : ""}${delta.toFixed(1)} kg`,
-    count: points.length
+    delta: deltaValue === null ? "—" : `${deltaValue >= 0 ? "+" : ""}${deltaValue.toFixed(1)} ${unit}`,
+    deltaValue,
+    count: points.length,
+    points
   };
+}
+
+function weightTrend(logs) {
+  return measurementTrend(logs, log => numericWeight(log.weight), "kg", numericWeight(state.weight));
+}
+
+function waistTrend(logs) {
+  return measurementTrend(logs, log => numericWaist(log.waistCm), "cm", numericWaist(state.waistCm));
 }
 
 function averagePain(logs, limit = 7) {
@@ -534,6 +554,93 @@ function coachingDecision({ completed, readiness, load, recovery }) {
   return { level: "yellow", text: "Not enough signal yet. Keep logging karate load and recovery for a clean baseline." };
 }
 
+function trendPoints(logs, selector, days = 28) {
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  return metricPoints(logs, selector).filter(point => point.date.getTime() >= cutoff);
+}
+
+function trendDirection(delta, threshold = 0.5, lowerIsBetter = false) {
+  if (delta === null || delta === undefined) return "Not enough data";
+  if (Math.abs(delta) < threshold) return "Stable";
+  const better = lowerIsBetter ? delta < 0 : delta > 0;
+  return better ? "Improving" : "Worsening";
+}
+
+function rollingTrend(logs, selector, { days = 28, threshold = 0.5, lowerIsBetter = false } = {}) {
+  const points = trendPoints(logs, selector, days);
+  if (points.length < 2) return { count: points.length, delta: null, direction: "Not enough data", latest: points.at(-1)?.value ?? null };
+  const delta = points.at(-1).value - points[0].value;
+  return {
+    count: points.length,
+    delta,
+    direction: trendDirection(delta, threshold, lowerIsBetter),
+    latest: points.at(-1).value
+  };
+}
+
+function recoveryDebtSignal({ load, recovery, readiness, trends }) {
+  const sorenessBad = trends.soreness.direction === "Worsening" || trends.stiffness.direction === "Worsening";
+  if (readiness.red > 0 || recovery.recommendations.pause > 0 || recovery.avgSoreness >= 7 || recovery.avgStiffness >= 7) {
+    return { level: "red", label: "High", text: "Recovery debt is high. Keep hard work paused until soreness/stiffness drops." };
+  }
+  if ((load.avgCardio ?? 0) >= 8 && (recovery.avgSoreness >= 5 || recovery.avgStiffness >= 5 || sorenessBad)) {
+    return { level: "yellow", label: "Building", text: "Karate load is high while recovery is not clean. Reduce the next non-karate work." };
+  }
+  if (recovery.avgSoreness >= 5 || recovery.avgStiffness >= 5 || readiness.yellow >= 2) {
+    return { level: "yellow", label: "Watch", text: "Recovery is acceptable but not fresh. Keep the next day technical or easy." };
+  }
+  if (load.count && recovery.count) {
+    return { level: "green", label: "Low", text: "Load and recovery are currently balanced." };
+  }
+  return { level: "yellow", label: "Unknown", text: "Need more karate and recovery logs before judging debt." };
+}
+
+function transformationSignal(weight, waist, readiness) {
+  if (waist.count < 2) return { label: "First markers", text: "Add weekly Bauchumfang to separate real body change from weight noise." };
+  if ((waist.deltaValue ?? 0) <= -0.5 && (weight.deltaValue ?? 0) <= 0.3) {
+    return { label: "Leaning out", text: "Waist is down while weight is stable or down. That is the transformation signal to watch." };
+  }
+  if ((weight.deltaValue ?? 0) <= -1.5 && (waist.deltaValue ?? 0) > -0.3 && (readiness.yellow + readiness.red) >= 2) {
+    return { label: "Watch loss quality", text: "Weight is dropping without waist moving and readiness is mixed. Do not chase faster loss." };
+  }
+  return { label: "Stable", text: "No clear body-composition trend yet. Keep weekly waist and weight consistent." };
+}
+
+function trendEngine(logs = state.logs) {
+  const last14 = logs.filter(log => Date.now() - new Date(log.date).getTime() <= 14 * 24 * 60 * 60 * 1000);
+  const completed = last14.filter(log => log.type === "DONE").length;
+  const readiness = readinessStats(logs, 14);
+  const load = karateLoadStats(logs);
+  const recovery = recoveryStats(logs);
+  const weight = weightTrend(logs);
+  const waist = waistTrend(logs);
+  const trends = {
+    weight: rollingTrend(logs, log => numericWeight(log.weight), { days: 28, threshold: 0.4, lowerIsBetter: true }),
+    waist: rollingTrend(logs, log => numericWaist(log.waistCm), { days: 28, threshold: 0.5, lowerIsBetter: true }),
+    cardio: rollingTrend(logs, log => log.trainingLoad?.cardio, { days: 28, threshold: 1 }),
+    strength: rollingTrend(logs, log => log.trainingLoad?.strength, { days: 28, threshold: 1 }),
+    soreness: rollingTrend(logs, log => log.recovery?.soreness, { days: 28, threshold: 1, lowerIsBetter: true }),
+    stiffness: rollingTrend(logs, log => log.recovery?.stiffness, { days: 28, threshold: 1, lowerIsBetter: true })
+  };
+  const debt = recoveryDebtSignal({ load, recovery, readiness, trends });
+  let decision = { level: "yellow", label: "Watch", text: "Keep collecting clean data; the baseline is still forming." };
+  if (debt.level === "red") decision = { level: "red", label: "Recovery", text: debt.text };
+  else if (debt.level === "yellow") decision = { level: "yellow", label: debt.label === "Building" ? "Reduce" : "Watch", text: debt.text };
+  else if (completed >= 3) decision = { level: "green", label: "Normal", text: "Current trend is sustainable. Train normally and keep logging." };
+  return {
+    completed,
+    readiness,
+    load,
+    recovery,
+    weight,
+    waist,
+    trends,
+    debt,
+    transformation: transformationSignal(weight, waist, readiness),
+    decision
+  };
+}
+
 function metricPoints(logs, selector) {
   return logs
     .map(log => ({ date: new Date(log.date), value: selector(log), log }))
@@ -575,7 +682,7 @@ function skipReasonText(log) {
 
 function exportLogsAsCsv(logs = state.logs) {
   const columns = [
-    "id", "date", "card", "type", "readiness", "pain_knees", "pain_achilles", "pain_hips", "pain_lower_back", "sparring", "weight", "energy", "note", "skip_reason_category", "skip_reason_text", "sleep_hours", "load_cardio", "load_strength", "soreness_areas", "soreness", "stiffness", "recommendation"
+    "id", "date", "card", "type", "readiness", "pain_knees", "pain_achilles", "pain_hips", "pain_lower_back", "sparring", "weight", "waist_cm", "energy", "note", "skip_reason_category", "skip_reason_text", "sleep_hours", "load_cardio", "load_strength", "soreness_areas", "soreness", "stiffness", "recommendation"
   ];
   const rows = logs.map(log => [
     log.id,
@@ -589,6 +696,7 @@ function exportLogsAsCsv(logs = state.logs) {
     log.pain?.lowerBack,
     log.sparring,
     log.weight,
+    log.waistCm || "",
     log.energy,
     log.note,
     skipReasonCategory(log),
@@ -636,6 +744,10 @@ function chartBounds(points, fixedMin = null, fixedMax = null) {
   return { min, max };
 }
 
+function chartDecimals(unit) {
+  return ["kg", "cm"].includes(unit) ? 1 : 0;
+}
+
 function renderSparkChart({ title, subtitle, points, unit = "", tone = "accent", min = null, max = null }) {
   const chartWidth = 320;
   const chartHeight = 164;
@@ -651,8 +763,9 @@ function renderSparkChart({ title, subtitle, points, unit = "", tone = "accent",
   const latestPoint = points.length ? points[points.length - 1] : null;
   const oldestPoint = points.length ? points[0] : null;
   const delta = points.length >= 2 ? latestPoint.value - oldestPoint.value : null;
-  const latest = latestPoint ? `${latestPoint.value.toFixed(unit === "kg" ? 1 : 0)}${unit ? ` ${unit}` : ""}` : "—";
-  const direction = delta === null ? "First marker" : `${delta >= 0 ? "+" : ""}${delta.toFixed(unit === "kg" ? 1 : 0)}${unit ? ` ${unit}` : ""}`;
+  const decimals = chartDecimals(unit);
+  const latest = latestPoint ? `${latestPoint.value.toFixed(decimals)}${unit ? ` ${unit}` : ""}` : "—";
+  const direction = delta === null ? "First marker" : `${delta >= 0 ? "+" : ""}${delta.toFixed(decimals)}${unit ? ` ${unit}` : ""}`;
   return `
     <article class="chart-card ${tone}" data-chart="${escapeHtml(title.toLowerCase().replace(/\s+/g, "-"))}">
       <div class="chart-head">
@@ -731,7 +844,7 @@ function renderDataExportCard(logs = state.logs) {
   return `
     <section class="card export-card" style="margin-top:16px">
       <h2>Data export</h2>
-      <p class="subtle">Download all local training logs for later analysis. JSON preserves the raw log objects; CSV flattens weight, sleep, karate load, recovery, legacy pain/energy, and skip-reason fields.</p>
+      <p class="subtle">Download all local training logs for later analysis. JSON preserves the raw log objects; CSV flattens weight, waist, sleep, karate load, recovery, legacy pain/energy, and skip-reason fields.</p>
       <div class="readiness-strip export-stats" style="margin-top:12px">
         <div class="metric"><strong>${logs.length}</strong><span>Total logs</span></div>
         <div class="metric"><strong>${logs.filter(log => log.type === "SKIPPED").length}</strong><span>Skipped</span></div>
@@ -850,6 +963,7 @@ function renderSessionItem(item, card = currentCard()) {
 function renderInsights() {
   const logs = state.logs;
   const weightPoints = metricPoints(logs, log => numericWeight(log.weight));
+  const waistPoints = metricPoints(logs, log => numericWaist(log.waistCm));
   const cardioPoints = metricPoints(logs, log => log.trainingLoad?.cardio);
   const strengthPoints = metricPoints(logs, log => log.trainingLoad?.strength);
   const sorenessPoints = metricPoints(logs, log => log.recovery?.soreness);
@@ -869,6 +983,7 @@ function renderInsights() {
       </section>
       <section class="chart-stack" aria-label="Coaching visualizations">
         ${renderSparkChart({ title: "Weight trend", subtitle: "Bodyweight direction, not daily noise.", points: weightPoints, unit: "kg", tone: "weight" })}
+        ${renderSparkChart({ title: "Waist trend", subtitle: "Weekly Bauchumfang for body transformation signal.", points: waistPoints, unit: "cm", tone: "weight" })}
         ${renderSparkChart({ title: "Cardio load", subtitle: `Post-karate conditioning effort · avg ${formatAverage(load.avgCardio)}/10.`, points: cardioPoints, unit: "/10", tone: "pain", min: 0, max: 10 })}
         ${renderSparkChart({ title: "Strength load", subtitle: `Post-karate strength effort · avg ${formatAverage(load.avgStrength)}/10.`, points: strengthPoints, unit: "/10", tone: "energy", min: 0, max: 10 })}
         ${renderSparkChart({ title: "Soreness trend", subtitle: `Between-karate soreness · avg ${formatAverage(recovery.avgSoreness)}/10.`, points: sorenessPoints, unit: "/10", tone: "pain", min: 0, max: 10 })}
@@ -1022,25 +1137,40 @@ function urlBase64ToUint8Array(base64String) {
 
 function renderProgress() {
   const logs = state.logs;
-  const last14 = logs.filter(log => Date.now() - new Date(log.date).getTime() <= 14 * 24 * 60 * 60 * 1000);
-  const completed = last14.filter(log => log.type === "DONE").length;
-  const weight = weightTrend(logs);
-  const readiness = readinessStats(logs, 14);
-  const load = karateLoadStats(logs);
-  const recovery = recoveryStats(logs);
+  const engine = trendEngine(logs);
+  const { completed, readiness, load, recovery, weight, waist } = engine;
   const recommendationMix = `${recovery.recommendations.normal}/${recovery.recommendations.reduced}/${recovery.recommendations.mobility}/${recovery.recommendations.pause}`;
   const decision = coachingDecision({ completed, readiness, load, recovery });
   return `
     <main class="screen" data-screen="progress">
       ${renderTopbar("Analytics", "Local trends from your check-ins.")}
       <section class="card accent-card">
-        <h2>Coach decision</h2>
-        <p class="decision ${decision.level}">${decision.text}</p>
-        <p class="subtle">Based on last 7–14 days. Data stays on this iPhone.</p>
+        <h2>Trend decision</h2>
+        <p class="decision ${engine.decision.level}">${engine.decision.label}: ${engine.decision.text}</p>
+        <div class="readiness-strip" style="margin-top:12px">
+          <div class="metric"><strong>${engine.debt.label}</strong><span>Recovery debt</span></div>
+          <div class="metric"><strong>${engine.trends.waist.direction}</strong><span>Waist trend</span></div>
+          <div class="metric"><strong>${engine.trends.soreness.direction}</strong><span>Soreness trend</span></div>
+        </div>
+        <p class="subtle" style="margin-top:10px">7–28 day rolling signal. If sample size is too small, it stays conservative.</p>
         <div class="actions" style="margin-top:14px">
           <button class="btn primary" data-route="insights">Open charts</button>
           <button class="btn secondary" data-route="notifications">iPhone notifications</button>
         </div>
+      </section>
+      <section class="card" style="margin-top:16px">
+        <h2>Weekly summary</h2>
+        <div class="readiness-strip">
+          <div class="metric"><strong>${completed}</strong><span>Done 14d</span></div>
+          <div class="metric"><strong>${formatAverage(load.avgCardio)}</strong><span>Cardio avg</span></div>
+          <div class="metric"><strong>${formatAverage(recovery.avgSoreness)}</strong><span>Soreness avg</span></div>
+        </div>
+        <p class="subtle" style="margin-top:10px">${engine.debt.text}</p>
+      </section>
+      <section class="card" style="margin-top:16px">
+        <h2>Coach decision</h2>
+        <p class="decision ${decision.level}">${decision.text}</p>
+        <p class="subtle">Based on last 7–14 days. Data stays on this iPhone.</p>
       </section>
       ${renderDataExportCard(logs)}
       <section class="card" style="margin-top:16px">
@@ -1051,6 +1181,15 @@ function renderProgress() {
           <div class="metric"><strong>${weight.count}</strong><span>weigh-ins</span></div>
         </div>
         <p class="subtle" style="margin-top:10px">Target pace: slow drop, roughly 0.3–0.6 kg/week. Faster is not automatically better for kumite.</p>
+      </section>
+      <section class="card" style="margin-top:16px">
+        <h2>Transformation</h2>
+        <div class="readiness-strip">
+          <div class="metric"><strong>${waist.latest || "—"}</strong><span>Latest cm</span></div>
+          <div class="metric"><strong>${waist.delta}</strong><span>30d trend</span></div>
+          <div class="metric"><strong>${waist.count}</strong><span>waist logs</span></div>
+        </div>
+        <p class="subtle" style="margin-top:10px"><strong>${engine.transformation.label}.</strong> ${engine.transformation.text}</p>
       </section>
       <section class="card" style="margin-top:16px">
         <h2>Karate load</h2>
@@ -1130,6 +1269,11 @@ function bindCommonEvents() {
   const weight = document.querySelector("[data-weight]");
   if (weight) weight.addEventListener("input", () => {
     state.weight = weight.value.trim();
+    saveState();
+  });
+  const waistCm = document.querySelector("[data-waist-cm]");
+  if (waistCm) waistCm.addEventListener("input", () => {
+    state.waistCm = waistCm.value.trim();
     saveState();
   });
   const energy = document.querySelector("[data-energy]");
@@ -1213,6 +1357,7 @@ function logSession(type) {
     pain: { ...state.pain },
     sparring: Number(state.sparring || 0),
     weight: state.weight || "",
+    waistCm: state.waistCm || "",
     sleepHours: state.sleepHours || "",
     energy: Number(state.energy || 0),
     note: state.note || ""
@@ -1247,6 +1392,7 @@ function formatPain(pain) {
 function formatMetricLog(log) {
   const parts = [];
   if (log.weight) parts.push(`${log.weight} kg`);
+  if (log.waistCm) parts.push(`waist ${log.waistCm} cm`);
   if (log.sleepHours) parts.push(`sleep ${log.sleepHours}h`);
   if (log.trainingLoad) parts.push(`cardio ${log.trainingLoad.cardio}/10`, `strength ${log.trainingLoad.strength}/10`);
   if (log.recovery) {
