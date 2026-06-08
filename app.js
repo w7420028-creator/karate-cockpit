@@ -328,7 +328,7 @@ function renderPostKarateInputs(prefix = "") {
         ${renderLoadSlider("strength", "Strength effort", prefix)}
       </div>
       <label class="eyebrow" for="${prefix}note">Karate fatigue / overload notes</label>
-      <textarea id="${prefix}note" data-note maxlength="140" placeholder="calves heavy, hips fine, shoulders tired">${escapeHtml(state.note || "")}</textarea>
+      <textarea id="${prefix}note" data-note maxlength="140" placeholder="Unterschenkel heavy, Rücken tight, Unterarme tired">${escapeHtml(state.note || "")}</textarea>
       ${renderOptionalRecoveryImports(prefix)}
       ${renderSkipReasonInputs(prefix)}
     </div>`;
@@ -1339,8 +1339,10 @@ function bindCommonEvents() {
 }
 
 function currentSkipReason() {
-  const category = state.skipReason?.category || "";
-  const text = state.skipReason?.text || "";
+  const categoryInput = document.querySelector("[data-skip-reason-category]");
+  const textInput = document.querySelector("[data-skip-reason-text]");
+  const category = categoryInput?.value || state.skipReason?.category || "";
+  const text = (textInput?.value?.trim()) || state.skipReason?.text || "";
   if (!category && !text) return null;
   return { category: category || "other", text };
 }
@@ -1441,12 +1443,6 @@ function escapeHtml(value) {
 }
 
 if ("serviceWorker" in navigator) {
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (refreshing) return;
-    refreshing = true;
-    window.location.reload();
-  });
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").then(registration => registration.update()).catch(() => {});
   });

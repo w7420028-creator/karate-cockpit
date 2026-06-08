@@ -72,14 +72,14 @@ test.describe('Karate Cockpit V1', () => {
 
     await page.locator('#load-cardio').fill('8');
     await page.locator('#load-strength').fill('6');
-    await page.locator('#note').fill('calves heavy, hips fine');
+    await page.locator('#note').fill('Unterschenkel heavy, Rücken fine');
     await page.getByRole('button', { name: /^Done$/ }).tap();
 
     const state = await page.evaluate(() => JSON.parse(localStorage.getItem('karate-cockpit-v1')));
     expect(state.logs).toHaveLength(1);
     expect(state.logs[0].card).toBe('monday-karate');
     expect(state.logs[0].trainingLoad).toEqual({ cardio: 8, strength: 6 });
-    expect(state.logs[0].note).toBe('calves heavy, hips fine');
+    expect(state.logs[0].note).toBe('Unterschenkel heavy, Rücken fine');
   });
 
   test('Between karate days use recovery soreness check with optional sleep import', async ({ page }) => {
