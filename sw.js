@@ -1,4 +1,4 @@
-const CACHE = "karate-cockpit-v23";
+const CACHE = "karate-cockpit-v24";
 const DEFAULT_URL = "./";
 const ASSETS = [
   "./",

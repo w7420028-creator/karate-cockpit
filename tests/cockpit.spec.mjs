@@ -137,9 +137,9 @@ test.describe('Karate Cockpit V1', () => {
       energy: 7,
       note: '',
       logs: [
-        { id: '1', date: '2026-06-06T08:30:00+02:00', card: 'saturday-optional', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '', waistCm: '104.0', energy: 0, recovery: { areas: ['Unterschenkel'], soreness: 3, stiffness: 2, recommendation: 'normal' }, note: 'loose legs' },
-        { id: '6', date: '2026-06-04T20:00:00+02:00', card: 'thursday-footwork', type: 'DONE', readiness: 'YELLOW', pain: defaultPain, weight: '', energy: 0, recovery: { areas: ['Rücken', 'Bauch'], soreness: 7, stiffness: 5, recommendation: 'pause' }, note: 'core/back loaded' },
-        { id: '7', date: '2026-06-03T20:00:00+02:00', card: 'wednesday-strength', type: 'DONE', readiness: 'YELLOW', pain: defaultPain, weight: '', energy: 0, recovery: { areas: ['Rücken'], soreness: 6, stiffness: 4, recommendation: 'mobility' }, note: 'back still tight' },
+        { id: '1', date: '2026-06-06T08:30:00+02:00', card: 'saturday-recovery', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '', waistCm: '104.0', energy: 0, recovery: { areas: ['Unterschenkel'], soreness: 3, stiffness: 2, recommendation: 'normal' }, note: 'loose legs' },
+        { id: '6', date: '2026-06-04T20:00:00+02:00', card: 'thursday-recovery', type: 'DONE', readiness: 'YELLOW', pain: defaultPain, weight: '', energy: 0, recovery: { areas: ['Rücken', 'Bauch'], soreness: 7, stiffness: 5, recommendation: 'pause' }, note: 'core/back loaded' },
+        { id: '7', date: '2026-06-03T20:00:00+02:00', card: 'wednesday-recovery', type: 'DONE', readiness: 'YELLOW', pain: defaultPain, weight: '', energy: 0, recovery: { areas: ['Rücken'], soreness: 6, stiffness: 4, recommendation: 'mobility' }, note: 'back still tight' },
         { id: '2', date: '2026-06-02T08:00:00+02:00', card: 'tuesday-recovery', type: 'DONE', readiness: 'YELLOW', pain: defaultPain, weight: '', energy: 0, recovery: { areas: ['Rücken'], soreness: 5, stiffness: 4, recommendation: 'mobility' }, note: 'back tight' },
         { id: '3', date: '2026-06-01T21:00:00+02:00', card: 'monday-karate', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '93.8', energy: 0, trainingLoad: { cardio: 8, strength: 6 }, note: 'kizami' },
         { id: '4', date: '2026-05-31T18:30:00+02:00', card: 'sunday-review', type: 'DONE', readiness: 'YELLOW', pain: { knees: 2, achilles: 3, hips: 1, lowerBack: 1 }, weight: '94,5', waistCm: '105.0', energy: 5, note: 'distance' },
@@ -255,7 +255,7 @@ test.describe('Karate Cockpit V1', () => {
       energy: 7,
       note: '',
       logs: [
-        { id: 'skip', date: '2026-06-06T18:30:00+02:00', card: 'saturday-optional', type: 'SKIPPED', readiness: 'YELLOW', pain: { knees: 1, achilles: 1, hips: 0, lowerBack: 0 }, weight: '', energy: 5, note: '', skipReason: { category: 'holiday', text: 'Pentecost holiday' } },
+        { id: 'skip', date: '2026-06-06T18:30:00+02:00', card: 'saturday-recovery', type: 'SKIPPED', readiness: 'YELLOW', pain: { knees: 1, achilles: 1, hips: 0, lowerBack: 0 }, weight: '', energy: 5, note: '', skipReason: { category: 'holiday', text: 'Pentecost holiday' } },
         { id: 'done', date: '2026-06-05T18:30:00+02:00', card: 'friday-karate', type: 'DONE', readiness: 'GREEN', pain: { knees: 0, achilles: 1, hips: 0, lowerBack: 0 }, weight: '93.8', waistCm: '104.0', energy: 7, note: 'kizami, sharp' }
       ]
     });
@@ -323,9 +323,21 @@ test.describe('Karate Cockpit V1', () => {
 
   test('Today only exposes the new check-in tracking, not session/program controls', async ({ page }) => {
     await setAppDate(page, '2026-06-03T20:00:00+02:00');
+    await seedState(page, {
+      readiness: 'GREEN',
+      pain: defaultPain,
+      sparring: 0,
+      weight: '94.0',
+      energy: 7,
+      note: '',
+      logs: [
+        { id: 'legacy-same-day', date: '2026-06-03T08:00:00+02:00', card: 'wednesday-strength', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '', energy: 7, note: 'old key' }
+      ]
+    });
     await page.goto('/');
 
     await expect(page.getByRole('heading', { name: 'Recovery check' })).toBeVisible();
+    await expect(page.getByText('Completed today.')).toBeVisible();
     await expect(page.getByText('Strength / Tendon A')).toHaveCount(0);
     await expect(page.getByText('Footwork + Mobility')).toHaveCount(0);
     await expect(page.getByText('Optional Stable-Week Work')).toHaveCount(0);
@@ -336,10 +348,10 @@ test.describe('Karate Cockpit V1', () => {
     await expect(page.locator('.session-overlay')).toHaveCount(0);
 
     await page.locator('#recovery-soreness').fill('4');
-    await page.getByRole('button', { name: /^Done$/ }).tap();
+    await page.getByRole('button', { name: 'Update entry' }).tap();
     const state = await page.evaluate(() => JSON.parse(localStorage.getItem('karate-cockpit-v1')));
     expect(state.logs).toHaveLength(1);
-    expect(state.logs[0].card).toBe('wednesday-strength');
+    expect(state.logs[0].card).toBe('wednesday-recovery');
     expect(state.logs[0].type).toBe('DONE');
   });
 

@@ -77,7 +77,7 @@ Log entry shape:
 {
   "id": "uuid-or-timestamp",
   "date": "ISO-8601 timestamp",
-  "card": "sunday-review|monday-karate|tuesday-recovery|wednesday-strength|thursday-footwork|friday-karate|saturday-optional",
+  "card": "sunday-review|monday-karate|tuesday-recovery|wednesday-recovery|thursday-recovery|friday-karate|saturday-recovery",
   "type": "DONE|SKIPPED",
   "readiness": "GREEN|YELLOW|RED",
   "trainingLoad": { "cardio": 8, "strength": 6 },
@@ -90,7 +90,7 @@ Log entry shape:
 }
 ```
 
-Analytics are derived from these logs: bodyweight from `weight`, waist from `waistCm`, karate load from `trainingLoad`, recovery from `recovery`, readiness from `readiness`, completion mix from `DONE`/`SKIPPED`, and skip classification from `skipReason`. Trend Engine v1 computes conservative 7-28 day signals for the top decision card, recovery debt, weekly summary, and transformation signal. Soreness map uses the six recovery muscle areas to show recent recurrence and per-area trend labels; Open charts adds a larger muscle heatmap for up to 30 recovery check-ins. Raw JSON preserves any older stored fields for history, but new logs and flattened CSV use only the current karate/recovery contract. Existing historical `MINIMUM` logs remain counted/exported. Data is durable for the installed browser profile, including offline use. The Progress screen exports the full uncapped log history as raw JSON or flattened CSV for later analytics. There is no backend sync yet.
+Analytics are derived from these logs: bodyweight from `weight`, waist from `waistCm`, karate load from `trainingLoad`, recovery from `recovery`, readiness from `readiness`, completion mix from `DONE`/`SKIPPED`, and skip classification from `skipReason`. Trend Engine v1 computes conservative 7-28 day signals for the top decision card, recovery debt, weekly summary, and transformation signal. Soreness map uses the six recovery muscle areas to show recent recurrence and per-area trend labels; Open charts adds a larger muscle heatmap for up to 30 recovery check-ins. Raw JSON preserves any older stored fields for history, but new logs and flattened CSV use only the current karate/recovery contract. Existing historical `MINIMUM` logs remain counted/exported, and older weekday card keys are normalized to the current recovery keys when loaded. Data is durable for the installed browser profile, including offline use. The Progress screen exports the full uncapped log history as raw JSON or flattened CSV for later analytics. There is no backend sync yet.
 
 ## iOS Web Push reminders
 

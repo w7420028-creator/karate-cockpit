@@ -28,7 +28,7 @@ const CARDS = {
     reason: "Track muscle soreness, stiffness, and today’s sensible recovery choice."
   },
   3: {
-    key: "wednesday-strength",
+    key: "wednesday-recovery",
     shortDay: "WED",
     label: "Recovery check",
     command: "Muscle state decides the day.",
@@ -36,7 +36,7 @@ const CARDS = {
     reason: "Track soreness/stiffness first; only train normally if recovery is green."
   },
   4: {
-    key: "thursday-footwork",
+    key: "thursday-recovery",
     shortDay: "THU",
     label: "Recovery check",
     command: "Leg state first.",
@@ -52,7 +52,7 @@ const CARDS = {
     reason: "Log conditioning/cardio effort, strength effort, and where the body feels overloaded."
   },
   6: {
-    key: "saturday-optional",
+    key: "saturday-recovery",
     shortDay: "SAT",
     label: "Recovery check",
     command: "Recovery first.",
@@ -73,6 +73,11 @@ const DEFAULT_STATE = {
   logs: []
 };
 
+const CARD_KEY_MIGRATIONS = {
+  "wednesday-strength": "wednesday-recovery",
+  "thursday-footwork": "thursday-recovery",
+  "saturday-optional": "saturday-recovery"
+};
 const RECOVERY_AREAS = ["Unterschenkel", "Oberschenkel", "Bauch", "Rücken", "Oberarme", "Unterarme"];
 
 const app = document.querySelector("#app");
@@ -96,11 +101,19 @@ function loadState() {
         areas: Array.isArray(parsed?.recovery?.areas) ? parsed.recovery.areas : []
       },
       skipReason: { ...DEFAULT_STATE.skipReason, ...(parsed?.skipReason || {}) },
-      logs: parsed?.logs || []
+      logs: normalizeLogs(parsed?.logs)
     };
   } catch {
     return JSON.parse(JSON.stringify(DEFAULT_STATE));
   }
+}
+
+function normalizeLogs(logs) {
+  if (!Array.isArray(logs)) return [];
+  return logs.map(log => ({
+    ...log,
+    card: CARD_KEY_MIGRATIONS[log?.card] || log?.card
+  }));
 }
 
 function saveState() {
