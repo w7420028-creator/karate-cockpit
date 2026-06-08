@@ -112,6 +112,9 @@ const CARDS = {
 const DEFAULT_STATE = {
   readiness: "GREEN",
   pain: { knees: 0, achilles: 0, hips: 0, lowerBack: 0 },
+  trainingLoad: { cardio: 0, strength: 0 },
+  recovery: { areas: [], soreness: 0, stiffness: 0, recommendation: "normal" },
+  sleepHours: "",
   sparring: 0,
   weight: "",
   energy: 7,
@@ -187,6 +190,12 @@ function loadState() {
       ...DEFAULT_STATE,
       ...parsed,
       pain: { ...DEFAULT_STATE.pain, ...(parsed?.pain || {}) },
+      trainingLoad: { ...DEFAULT_STATE.trainingLoad, ...(parsed?.trainingLoad || {}) },
+      recovery: {
+        ...DEFAULT_STATE.recovery,
+        ...(parsed?.recovery || {}),
+        areas: Array.isArray(parsed?.recovery?.areas) ? parsed.recovery.areas : []
+      },
       skipReason: { ...DEFAULT_STATE.skipReason, ...(parsed?.skipReason || {}) },
       logs: parsed?.logs || []
     };
@@ -258,6 +267,33 @@ function suggestedReadiness() {
   if (state.readiness === "RED" || pain >= 4) return "RED";
   if (state.readiness === "YELLOW" || pain >= 3) return "YELLOW";
   return "GREEN";
+}
+
+function isKarateCheckin(card = currentCard()) {
+  return ["monday-karate", "friday-karate"].includes(card.key);
+}
+
+function isRecoveryCheckin(card = currentCard()) {
+  return card.key !== "sunday-review" && !isKarateCheckin(card);
+}
+
+function recoveryRecommendation(recovery = state.recovery) {
+  const max = Math.max(Number(recovery.soreness) || 0, Number(recovery.stiffness) || 0);
+  if (state.readiness === "RED" || max >= 7) return "pause";
+  if (max >= 5) return "mobility";
+  if (state.readiness === "YELLOW" || max >= 3) return "reduced";
+  return "normal";
+}
+
+function recoveryReadiness(recovery = state.recovery) {
+  const recommendation = recoveryRecommendation(recovery);
+  if (recommendation === "pause") return "RED";
+  if (["mobility", "reduced"].includes(recommendation)) return "YELLOW";
+  return suggestedReadiness();
+}
+
+function checkinReadiness(card = currentCard()) {
+  return isRecoveryCheckin(card) ? recoveryReadiness() : suggestedReadiness();
 }
 
 function render() {
@@ -346,6 +382,12 @@ function renderReadinessControl() {
 
 function renderReviewInputs(card = currentCard(), prefix = "") {
   const isSunday = card.key === "sunday-review";
+  if (!isSunday) return isKarateCheckin(card) ? renderPostKarateInputs(prefix) : renderRecoveryInputs(prefix);
+  return renderSundayReviewInputs(card, prefix);
+}
+
+function renderSundayReviewInputs(card = currentCard(), prefix = "") {
+  const isSunday = card.key === "sunday-review";
   return `
     <div class="input-grid">
       <label class="field-label" for="${prefix}weight">Weight <span>${isSunday ? "current bodyweight in kg" : "optional"}</span></label>
@@ -360,6 +402,83 @@ function renderReviewInputs(card = currentCard(), prefix = "") {
     <label class="eyebrow" for="${prefix}note">${isSunday ? "Best kumite feeling" : "What felt sharp?"}</label>
     <textarea id="${prefix}note" data-note maxlength="140" placeholder="e.g. kizami timing">${escapeHtml(state.note || "")}</textarea>
     ${renderSkipReasonInputs(prefix)}`;
+}
+
+function renderPostKarateInputs(prefix = "") {
+  return `
+    <div class="checkin-mode post-karate-check">
+      <h2>Post-karate check</h2>
+      <p class="subtle">After Monday/Friday training: log load, not a medical questionnaire.</p>
+      <div class="slider-grid">
+        ${renderLoadSlider("cardio", "Conditioning / cardio effort", prefix)}
+        ${renderLoadSlider("strength", "Strength effort", prefix)}
+      </div>
+      <label class="eyebrow" for="${prefix}note">Karate fatigue / overload notes</label>
+      <textarea id="${prefix}note" data-note maxlength="140" placeholder="calves heavy, hips fine, shoulders tired">${escapeHtml(state.note || "")}</textarea>
+      ${renderOptionalRecoveryImports(prefix)}
+      ${renderSkipReasonInputs(prefix)}
+    </div>`;
+}
+
+function renderRecoveryInputs(prefix = "") {
+  state.recovery.recommendation = recoveryRecommendation();
+  return `
+    <div class="checkin-mode recovery-check">
+      <h2>Recovery check</h2>
+      <p class="subtle">Between karate days: muscle soreness, stiffness, and today’s sensible training choice.</p>
+      <div class="input-grid">
+        <label class="field-label">Muscle soreness <span>tap areas</span></label>
+        <div class="chip-grid" role="group" aria-label="Muscle soreness areas">
+          ${["quads", "calves/Achilles", "knees", "hips", "lower back", "shoulders"].map(area => {
+            const active = state.recovery.areas.includes(area);
+            return `<button class="chip-btn" type="button" data-soreness-area="${escapeHtml(area)}" aria-pressed="${active}">${escapeHtml(area)}</button>`;
+          }).join("")}
+        </div>
+      </div>
+      <div class="slider-grid">
+        ${renderRecoverySlider("soreness", "Soreness intensity", prefix)}
+        ${renderRecoverySlider("stiffness", "Stiffness", prefix)}
+      </div>
+      <label class="field-label" for="${prefix}recovery-recommendation">Recommendation <span>auto-adjusts</span></label>
+      <select id="${prefix}recovery-recommendation" data-recovery-recommendation>
+        ${[["normal", "normal"], ["reduced", "reduced"], ["mobility", "mobility"], ["pause", "pause"]].map(([value, label]) => `<option value="${value}" ${state.recovery.recommendation === value ? "selected" : ""}>${label}</option>`).join("")}
+      </select>
+      ${renderOptionalRecoveryImports(prefix)}
+      ${renderSkipReasonInputs(prefix)}
+    </div>`;
+}
+
+function renderLoadSlider(key, label, prefix = "") {
+  const value = state.trainingLoad?.[key] ?? 0;
+  return `
+    <div class="slider-row">
+      <label for="${prefix}load-${key}">${label}</label>
+      <span class="value" id="${prefix}value-load-${key}">${value}</span>
+      <input id="${prefix}load-${key}" data-load="${key}" type="range" min="0" max="10" step="1" value="${value}" />
+    </div>`;
+}
+
+function renderRecoverySlider(key, label, prefix = "") {
+  const value = state.recovery?.[key] ?? 0;
+  return `
+    <div class="slider-row">
+      <label for="${prefix}recovery-${key}">${label}</label>
+      <span class="value" id="${prefix}value-recovery-${key}">${value}</span>
+      <input id="${prefix}recovery-${key}" data-recovery="${key}" type="range" min="0" max="10" step="1" value="${value}" />
+    </div>`;
+}
+
+function renderOptionalRecoveryImports(prefix = "") {
+  return `
+    <details class="optional-imports">
+      <summary>Optional sleep / weight import</summary>
+      <div class="optional-grid">
+        <label class="field-label" for="${prefix}sleep-hours">Sleep hours <span>AutoSleep / Health</span></label>
+        <input id="${prefix}sleep-hours" data-sleep-hours inputmode="decimal" autocomplete="off" placeholder="7.4" value="${escapeHtml(state.sleepHours || "")}" />
+        <label class="field-label" for="${prefix}weight">Weight <span>optional</span></label>
+        <input id="${prefix}weight" data-weight inputmode="decimal" autocomplete="off" placeholder="94.0" value="${escapeHtml(state.weight || "")}" />
+      </div>
+    </details>`;
 }
 
 function renderSkipReasonInputs(prefix = "") {
@@ -492,7 +611,7 @@ function skipReasonText(log) {
 
 function exportLogsAsCsv(logs = state.logs) {
   const columns = [
-    "id", "date", "card", "type", "readiness", "pain_knees", "pain_achilles", "pain_hips", "pain_lower_back", "sparring", "weight", "energy", "note", "skip_reason_category", "skip_reason_text"
+    "id", "date", "card", "type", "readiness", "pain_knees", "pain_achilles", "pain_hips", "pain_lower_back", "sparring", "weight", "energy", "note", "skip_reason_category", "skip_reason_text", "sleep_hours", "load_cardio", "load_strength", "soreness_areas", "soreness", "stiffness", "recommendation"
   ];
   const rows = logs.map(log => [
     log.id,
@@ -509,7 +628,14 @@ function exportLogsAsCsv(logs = state.logs) {
     log.energy,
     log.note,
     skipReasonCategory(log),
-    skipReasonText(log)
+    skipReasonText(log),
+    log.sleepHours || "",
+    log.trainingLoad?.cardio ?? "",
+    log.trainingLoad?.strength ?? "",
+    log.recovery?.areas?.join("|") || "",
+    log.recovery?.soreness ?? "",
+    log.recovery?.stiffness ?? "",
+    log.recovery?.recommendation || ""
   ]);
   return [columns, ...rows].map(row => row.map(csvEscape).join(",")).join("\n");
 }
@@ -1041,6 +1167,7 @@ function bindCommonEvents() {
   }));
   document.querySelectorAll("[data-readiness]").forEach(button => button.addEventListener("click", () => {
     state.readiness = button.dataset.readiness;
+    state.recovery.recommendation = recoveryRecommendation();
     saveState();
     render();
   }));
@@ -1066,6 +1193,41 @@ function bindCommonEvents() {
     state.energy = Number(energy.value);
     const value = document.querySelector("#value-energy");
     if (value) value.textContent = energy.value;
+    saveState();
+  });
+  document.querySelectorAll("[data-load]").forEach(input => input.addEventListener("input", () => {
+    const key = input.dataset.load;
+    state.trainingLoad[key] = Number(input.value);
+    const value = document.querySelector(`#value-load-${key}`);
+    if (value) value.textContent = input.value;
+    saveState();
+  }));
+  document.querySelectorAll("[data-recovery]").forEach(input => input.addEventListener("input", () => {
+    const key = input.dataset.recovery;
+    state.recovery[key] = Number(input.value);
+    state.recovery.recommendation = recoveryRecommendation();
+    const value = document.querySelector(`#value-recovery-${key}`);
+    const recommendation = document.querySelector("[data-recovery-recommendation]");
+    if (value) value.textContent = input.value;
+    if (recommendation) recommendation.value = state.recovery.recommendation;
+    saveState();
+  }));
+  document.querySelectorAll("[data-soreness-area]").forEach(button => button.addEventListener("click", () => {
+    const areas = new Set(state.recovery.areas || []);
+    if (areas.has(button.dataset.sorenessArea)) areas.delete(button.dataset.sorenessArea);
+    else areas.add(button.dataset.sorenessArea);
+    state.recovery.areas = [...areas];
+    button.setAttribute("aria-pressed", String(areas.has(button.dataset.sorenessArea)));
+    saveState();
+  }));
+  const recommendation = document.querySelector("[data-recovery-recommendation]");
+  if (recommendation) ["input", "change"].forEach(eventName => recommendation.addEventListener(eventName, () => {
+    state.recovery.recommendation = recommendation.value;
+    saveState();
+  }));
+  const sleepHours = document.querySelector("[data-sleep-hours]");
+  if (sleepHours) sleepHours.addEventListener("input", () => {
+    state.sleepHours = sleepHours.value.trim();
     saveState();
   });
   const skipCategory = document.querySelector("[data-skip-reason-category]");
@@ -1097,18 +1259,31 @@ function currentSkipReason() {
 }
 
 function logSession(type) {
+  const card = currentCard();
+  const readiness = type === "SKIPPED" ? suggestedReadiness() : checkinReadiness(card);
   const log = {
     id: globalThis.crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}`,
     date: new Date().toISOString(),
-    card: currentCard().key,
+    card: card.key,
     type,
-    readiness: suggestedReadiness(),
+    readiness,
     pain: { ...state.pain },
     sparring: Number(state.sparring || 0),
     weight: state.weight || "",
+    sleepHours: state.sleepHours || "",
     energy: Number(state.energy || 0),
     note: state.note || ""
   };
+  if (isKarateCheckin(card)) log.trainingLoad = { ...state.trainingLoad };
+  if (isRecoveryCheckin(card)) {
+    state.recovery.recommendation = recoveryRecommendation();
+    log.recovery = {
+      areas: [...(state.recovery.areas || [])],
+      soreness: Number(state.recovery.soreness || 0),
+      stiffness: Number(state.recovery.stiffness || 0),
+      recommendation: state.recovery.recommendation
+    };
+  }
   const skipReason = type === "SKIPPED" ? currentSkipReason() : null;
   if (skipReason) log.skipReason = skipReason;
   const todayKey = localDateKey();
@@ -1253,6 +1428,12 @@ function formatPain(pain) {
 function formatMetricLog(log) {
   const parts = [formatPain(log.pain)];
   if (log.weight) parts.push(`${log.weight} kg`);
+  if (log.sleepHours) parts.push(`sleep ${log.sleepHours}h`);
+  if (log.trainingLoad) parts.push(`cardio ${log.trainingLoad.cardio}/10`, `strength ${log.trainingLoad.strength}/10`);
+  if (log.recovery) {
+    if (log.recovery.areas?.length) parts.push(log.recovery.areas.join(", "));
+    parts.push(`sore ${log.recovery.soreness}/10`, `stiff ${log.recovery.stiffness}/10`, log.recovery.recommendation);
+  }
   if (Number.isFinite(Number(log.energy))) parts.push(`energy ${log.energy}`);
   const reason = formatSkipReason(log);
   if (reason) parts.push(`skip: ${reason}`);
@@ -1263,7 +1444,12 @@ function formatMetricLog(log) {
 function formatLogLine(log) {
   const date = new Date(log.date);
   const reason = formatSkipReason(log);
-  return `${date.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" })} · ${log.readiness} · ${formatPain(log.pain)}${reason ? ` · skip: ${reason}` : ""}`;
+  const detail = [];
+  if (log.trainingLoad) detail.push(`cardio ${log.trainingLoad.cardio}/10`, `strength ${log.trainingLoad.strength}/10`);
+  else if (log.recovery) detail.push(`recovery: ${log.recovery.recommendation}`);
+  else detail.push(formatPain(log.pain));
+  if (reason) detail.push(`skip: ${reason}`);
+  return `${date.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" })} · ${log.readiness} · ${detail.join(" · ")}`;
 }
 
 function formatSkipReason(log) {

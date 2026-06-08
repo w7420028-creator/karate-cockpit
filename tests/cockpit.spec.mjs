@@ -59,6 +59,53 @@ test.describe('Karate Cockpit V1', () => {
     expect(state.logs[0].weight).toBe('93.8');
   });
 
+  test('Monday karate check-in logs conditioning and strength effort', async ({ page }) => {
+    await setAppDate(page, '2026-06-01T21:00:00+02:00');
+    await page.goto('/');
+
+    await expect(page.getByRole('heading', { name: 'Post-karate check' })).toBeVisible();
+    await expect(page.getByText('Conditioning / cardio effort')).toBeVisible();
+    await expect(page.getByText('Strength effort')).toBeVisible();
+
+    await page.locator('#load-cardio').fill('8');
+    await page.locator('#load-strength').fill('6');
+    await page.locator('#note').fill('calves heavy, hips fine');
+    await page.getByRole('button', { name: /^Done$/ }).tap();
+
+    const state = await page.evaluate(() => JSON.parse(localStorage.getItem('karate-cockpit-v1')));
+    expect(state.logs).toHaveLength(1);
+    expect(state.logs[0].card).toBe('monday-karate');
+    expect(state.logs[0].trainingLoad).toEqual({ cardio: 8, strength: 6 });
+    expect(state.logs[0].note).toBe('calves heavy, hips fine');
+  });
+
+  test('Between karate days use recovery soreness check with optional sleep import', async ({ page }) => {
+    await setAppDate(page, '2026-06-02T08:00:00+02:00');
+    await page.goto('/');
+
+    await expect(page.getByRole('heading', { name: 'Recovery check' })).toBeVisible();
+    await expect(page.locator('.field-label').filter({ hasText: 'Muscle soreness' })).toBeVisible();
+    await page.getByRole('button', { name: 'calves/Achilles' }).tap();
+    await page.getByRole('button', { name: 'hips' }).tap();
+    await page.locator('#recovery-soreness').fill('5');
+    await page.locator('#recovery-stiffness').fill('4');
+    await page.getByText('Optional sleep / weight import').tap();
+    await page.locator('#sleep-hours').fill('7.4');
+    await page.getByRole('button', { name: /^Done$/ }).tap();
+
+    const state = await page.evaluate(() => JSON.parse(localStorage.getItem('karate-cockpit-v1')));
+    expect(state.logs).toHaveLength(1);
+    expect(state.logs[0].card).toBe('tuesday-recovery');
+    expect(state.logs[0].readiness).toBe('YELLOW');
+    expect(state.logs[0].recovery).toEqual({
+      areas: ['calves/Achilles', 'hips'],
+      soreness: 5,
+      stiffness: 4,
+      recommendation: 'mobility'
+    });
+    expect(state.logs[0].sleepHours).toBe('7.4');
+  });
+
   test('Progress analytics tracks weight, pain, energy, readiness and coach decision', async ({ page }) => {
     await setAppDate(page, '2026-06-07T20:30:00+02:00');
     await seedState(page, {
@@ -234,19 +281,20 @@ test.describe('Karate Cockpit V1', () => {
     expect(state.logs[0].type).toBe('DONE');
   });
 
-  test('Readiness and pain control tissue-protection state', async ({ page }) => {
+  test('Readiness and recovery soreness control tissue-protection state', async ({ page }) => {
     await setAppDate(page, '2026-06-02T07:30:00+02:00');
     await page.goto('/');
 
     await page.getByRole('button', { name: 'RED' }).tap();
     await expect(page.locator('.topbar .pill.red')).toHaveText('RED');
-    await page.locator('#pain-knees').fill('4');
+    await page.locator('#recovery-soreness').fill('8');
     await page.getByRole('button', { name: /^Done$/ }).tap();
 
     const state = await page.evaluate(() => JSON.parse(localStorage.getItem('karate-cockpit-v1')));
     expect(state.readiness).toBe('RED');
     expect(state.logs[0].readiness).toBe('RED');
-    expect(state.logs[0].pain.knees).toBe(4);
+    expect(state.logs[0].recovery.soreness).toBe(8);
+    expect(state.logs[0].recovery.recommendation).toBe('pause');
   });
 
   test('Skipped holiday logs keep reason and all logs export without truncation', async ({ page }) => {

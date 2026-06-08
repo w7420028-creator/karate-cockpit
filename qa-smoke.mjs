@@ -55,6 +55,14 @@ const sundayHtml = context.renderReviewInputs(context.CARDS[0]);
 for (const token of ['id="weight"', 'id="energy"', 'data-pain="knees"', 'Best kumite feeling', 'data-skip-reason-category', 'value="holiday"']) {
   if (!sundayHtml.includes(token)) throw new Error(`Sunday input missing ${token}`);
 }
+const mondayHtml = context.renderReviewInputs(context.CARDS[1]);
+for (const token of ['Post-karate check', 'id="load-cardio"', 'Conditioning / cardio effort', 'Strength effort', 'data-sleep-hours']) {
+  if (!mondayHtml.includes(token)) throw new Error(`Monday post-karate input missing ${token}`);
+}
+const tuesdayHtml = context.renderReviewInputs(context.CARDS[2]);
+for (const token of ['Recovery check', 'Muscle soreness', 'id="recovery-soreness"', 'calves/Achilles', 'data-recovery-recommendation']) {
+  if (!tuesdayHtml.includes(token)) throw new Error(`Tuesday recovery input missing ${token}`);
+}
 context.state.logs = [
   { date: new Date().toISOString(), type: 'DONE', readiness: 'GREEN', pain: { knees: 1, achilles: 2, hips: 1, lowerBack: 0 }, weight: '94,0', energy: 0, note: 'test' },
   { date: new Date(Date.now() - 7*864e5).toISOString(), type: 'MINIMUM', readiness: 'YELLOW', pain: { knees: 2, achilles: 2, hips: 1, lowerBack: 1 }, weight: '94.7', energy: 5, note: 'test' }
@@ -90,7 +98,7 @@ for (const token of ['One-time iPhone push setup', 'IOS_PUSH_SUBSCRIPTION', 'No 
 if (context.urlBase64ToUint8Array(context.VAPID_PUBLIC_KEY).length !== 65) throw new Error('VAPID public key should decode to a P-256 public key');
 
 const swSource = fs.readFileSync('sw.js', 'utf8');
-for (const token of ['karate-cockpit-v12', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
+for (const token of ['karate-cockpit-v13', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
   if (!swSource.includes(token)) throw new Error(`service worker push coverage missing ${token}`);
 }
 context.state.logs = [context.state.logs[0]];

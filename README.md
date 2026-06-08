@@ -38,7 +38,10 @@ Deployment:
 
 - Opens directly to Today.
 - Daily card is derived from the weekly rhythm in `../README.md`.
-- Logs `DONE`, `MINIMUM`, `SKIPPED`, readiness, pain sliders, and a short note to `localStorage`.
+- Logs `DONE`, `MINIMUM`, `SKIPPED`, readiness, and the right check-in for the day to `localStorage`.
+- Monday/Friday use a post-karate check for conditioning effort, strength effort, and overload notes.
+- Days between karate use a recovery check for muscle-soreness areas, soreness intensity, stiffness, and recommendation.
+- Sleep is optional/import-ready for AutoSleep/Apple Health values; the PWA does not directly read HealthKit.
 - Offline-capable via service worker.
 - Native Web Push-capable for installed iOS Home Screen PWA reminders.
 - No Telegram/chat-style interface; Telegram should link here only.
@@ -53,6 +56,9 @@ State shape:
 {
   "readiness": "GREEN|YELLOW|RED",
   "pain": { "knees": 0, "achilles": 0, "hips": 0, "lowerBack": 0 },
+  "trainingLoad": { "cardio": 0, "strength": 0 },
+  "recovery": { "areas": [], "soreness": 0, "stiffness": 0, "recommendation": "normal|reduced|mobility|pause" },
+  "sleepHours": "7.4",
   "sparring": 0,
   "weight": "94.0",
   "energy": 7,
@@ -74,6 +80,9 @@ Log entry shape:
   "type": "DONE|MINIMUM|SKIPPED",
   "readiness": "GREEN|YELLOW|RED",
   "pain": { "knees": 0, "achilles": 0, "hips": 0, "lowerBack": 0 },
+  "trainingLoad": { "cardio": 8, "strength": 6 },
+  "recovery": { "areas": ["calves/Achilles"], "soreness": 5, "stiffness": 4, "recommendation": "mobility" },
+  "sleepHours": "7.4",
   "sparring": 0,
   "weight": "94.0",
   "energy": 7,

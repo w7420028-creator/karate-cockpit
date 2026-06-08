@@ -327,6 +327,39 @@ input[type="text"]:focus, input[inputmode="decimal"]:focus, #weight:focus, selec
   box-shadow: 0 0 0 4px hsl(355 78% 52% / .14);
 }
 .energy-row { margin: 16px 0; }
+.checkin-mode { display: grid; gap: 14px; }
+.checkin-mode > h2 { margin-bottom: -4px; }
+.chip-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.chip-btn {
+  min-height: 46px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  color: var(--secondary);
+  background: hsl(220 13% 9% / .74);
+  font-size: 13px;
+  font-weight: 800;
+}
+.chip-btn[aria-pressed="true"] {
+  color: var(--text);
+  border-color: hsl(355 78% 52% / .58);
+  background: hsl(355 78% 52% / .16);
+}
+.optional-imports {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: hsl(220 13% 9% / .54);
+}
+.optional-imports summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  color: var(--secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 760;
+}
+.optional-grid { display: grid; gap: 10px; padding: 0 14px 14px; }
 .skip-reason {
   display: grid;
   gap: 8px;
