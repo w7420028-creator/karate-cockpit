@@ -85,7 +85,7 @@ Log entry shape:
   "readiness": "GREEN|YELLOW|RED",
   "pain": { "knees": 0, "achilles": 0, "hips": 0, "lowerBack": 0 },
   "trainingLoad": { "cardio": 8, "strength": 6 },
-  "recovery": { "areas": ["calves/Achilles"], "soreness": 5, "stiffness": 4, "recommendation": "mobility" },
+  "recovery": { "areas": ["Unterschenkel"], "soreness": 5, "stiffness": 4, "recommendation": "mobility" },
   "sleepHours": "7.4",
   "sparring": 0,
   "weight": "94.0",

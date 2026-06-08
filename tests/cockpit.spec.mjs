@@ -88,8 +88,16 @@ test.describe('Karate Cockpit V1', () => {
 
     await expect(page.getByRole('heading', { name: 'Recovery check' })).toBeVisible();
     await expect(page.locator('.field-label').filter({ hasText: 'Muscle soreness' })).toBeVisible();
-    await page.getByRole('button', { name: 'calves/Achilles' }).tap();
-    await page.getByRole('button', { name: 'hips' }).tap();
+    await expect(page.getByRole('button', { name: 'Unterschenkel' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Oberschenkel' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Bauch' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Rücken' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Oberarme' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Unterarme' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'calves/Achilles' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'hips' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Unterschenkel' }).tap();
+    await page.getByRole('button', { name: 'Rücken' }).tap();
     await page.locator('#recovery-soreness').fill('5');
     await page.locator('#recovery-stiffness').fill('4');
     await page.getByText('Optional sleep / weight import').tap();
@@ -101,7 +109,7 @@ test.describe('Karate Cockpit V1', () => {
     expect(state.logs[0].card).toBe('tuesday-recovery');
     expect(state.logs[0].readiness).toBe('YELLOW');
     expect(state.logs[0].recovery).toEqual({
-      areas: ['calves/Achilles', 'hips'],
+      areas: ['Unterschenkel', 'Rücken'],
       soreness: 5,
       stiffness: 4,
       recommendation: 'mobility'
@@ -120,8 +128,8 @@ test.describe('Karate Cockpit V1', () => {
       energy: 7,
       note: '',
       logs: [
-        { id: '1', date: '2026-06-06T08:30:00+02:00', card: 'saturday-optional', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '', waistCm: '104.0', energy: 0, recovery: { areas: ['calves/Achilles'], soreness: 3, stiffness: 2, recommendation: 'normal' }, note: 'loose legs' },
-        { id: '2', date: '2026-06-02T08:00:00+02:00', card: 'tuesday-recovery', type: 'DONE', readiness: 'YELLOW', pain: defaultPain, weight: '', energy: 0, recovery: { areas: ['hips'], soreness: 5, stiffness: 4, recommendation: 'mobility' }, note: 'hips tight' },
+        { id: '1', date: '2026-06-06T08:30:00+02:00', card: 'saturday-optional', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '', waistCm: '104.0', energy: 0, recovery: { areas: ['Unterschenkel'], soreness: 3, stiffness: 2, recommendation: 'normal' }, note: 'loose legs' },
+        { id: '2', date: '2026-06-02T08:00:00+02:00', card: 'tuesday-recovery', type: 'DONE', readiness: 'YELLOW', pain: defaultPain, weight: '', energy: 0, recovery: { areas: ['Rücken'], soreness: 5, stiffness: 4, recommendation: 'mobility' }, note: 'back tight' },
         { id: '3', date: '2026-06-01T21:00:00+02:00', card: 'monday-karate', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '93.8', energy: 0, trainingLoad: { cardio: 8, strength: 6 }, note: 'kizami' },
         { id: '4', date: '2026-05-31T18:30:00+02:00', card: 'sunday-review', type: 'DONE', readiness: 'YELLOW', pain: { knees: 2, achilles: 3, hips: 1, lowerBack: 1 }, weight: '94,5', waistCm: '105.0', energy: 5, note: 'distance' },
         { id: '5', date: '2026-05-10T18:30:00+02:00', card: 'sunday-review', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '', waistCm: '106.0', energy: 6, note: 'baseline' }

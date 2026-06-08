@@ -343,7 +343,7 @@ function renderRecoveryInputs(prefix = "") {
       <div class="input-grid">
         <label class="field-label">Muscle soreness <span>tap areas</span></label>
         <div class="chip-grid" role="group" aria-label="Muscle soreness areas">
-          ${["quads", "calves/Achilles", "knees", "hips", "lower back", "shoulders"].map(area => {
+          ${["Unterschenkel", "Oberschenkel", "Bauch", "Rücken", "Oberarme", "Unterarme"].map(area => {
             const active = state.recovery.areas.includes(area);
             return `<button class="chip-btn" type="button" data-soreness-area="${escapeHtml(area)}" aria-pressed="${active}">${escapeHtml(area)}</button>`;
           }).join("")}

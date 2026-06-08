@@ -63,8 +63,11 @@ for (const token of ['Post-karate check', 'id="load-cardio"', 'Conditioning / ca
   if (!mondayHtml.includes(token)) throw new Error(`Monday post-karate input missing ${token}`);
 }
 const tuesdayHtml = context.renderReviewInputs(context.CARDS[2]);
-for (const token of ['Recovery check', 'Muscle soreness', 'id="recovery-soreness"', 'calves/Achilles', 'data-recovery-recommendation']) {
+for (const token of ['Recovery check', 'Muscle soreness', 'id="recovery-soreness"', 'Unterschenkel', 'Oberschenkel', 'Bauch', 'Rücken', 'Oberarme', 'Unterarme', 'data-recovery-recommendation']) {
   if (!tuesdayHtml.includes(token)) throw new Error(`Tuesday recovery input missing ${token}`);
+}
+for (const token of ['calves/Achilles', 'hips', 'shoulders']) {
+  if (tuesdayHtml.includes(token)) throw new Error(`Tuesday recovery input should not expose old soreness area ${token}`);
 }
 const todayHtml = context.renderToday();
 for (const token of ['Full session', 'Minimum version', 'data-start="full"', 'data-start="minimum"', 'data-log="MINIMUM"']) {
@@ -72,7 +75,7 @@ for (const token of ['Full session', 'Minimum version', 'data-start="full"', 'da
 }
 context.state.logs = [
   { date: new Date().toISOString(), card: 'monday-karate', type: 'DONE', readiness: 'GREEN', pain: { knees: 1, achilles: 2, hips: 1, lowerBack: 0 }, weight: '94,0', waistCm: '104.0', energy: 0, trainingLoad: { cardio: 8, strength: 6 }, note: 'test' },
-  { date: new Date(Date.now() - 7*864e5).toISOString(), card: 'tuesday-recovery', type: 'DONE', readiness: 'YELLOW', pain: { knees: 2, achilles: 2, hips: 1, lowerBack: 1 }, weight: '94.7', waistCm: '105.0', energy: 5, recovery: { areas: ['hips'], soreness: 5, stiffness: 4, recommendation: 'mobility' }, note: 'test' }
+  { date: new Date(Date.now() - 7*864e5).toISOString(), card: 'tuesday-recovery', type: 'DONE', readiness: 'YELLOW', pain: { knees: 2, achilles: 2, hips: 1, lowerBack: 1 }, weight: '94.7', waistCm: '105.0', energy: 5, recovery: { areas: ['Rücken'], soreness: 5, stiffness: 4, recommendation: 'mobility' }, note: 'test' }
 ];
 if (context.weightTrend(context.state.logs).latest !== '94.0') throw new Error('weight latest failed');
 if (context.waistTrend(context.state.logs).latest !== '104.0') throw new Error('waist latest failed');
@@ -95,7 +98,7 @@ for (const token of ['One-time iPhone push setup', 'IOS_PUSH_SUBSCRIPTION', 'No 
 if (context.urlBase64ToUint8Array(context.VAPID_PUBLIC_KEY).length !== 65) throw new Error('VAPID public key should decode to a P-256 public key');
 
 const swSource = fs.readFileSync('sw.js', 'utf8');
-for (const token of ['karate-cockpit-v18', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
+for (const token of ['karate-cockpit-v19', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
   if (!swSource.includes(token)) throw new Error(`service worker push coverage missing ${token}`);
 }
 context.state.logs = [context.state.logs[0]];
