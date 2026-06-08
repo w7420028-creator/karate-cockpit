@@ -138,6 +138,8 @@ test.describe('Karate Cockpit V1', () => {
       note: '',
       logs: [
         { id: '1', date: '2026-06-06T08:30:00+02:00', card: 'saturday-optional', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '', waistCm: '104.0', energy: 0, recovery: { areas: ['Unterschenkel'], soreness: 3, stiffness: 2, recommendation: 'normal' }, note: 'loose legs' },
+        { id: '6', date: '2026-06-04T20:00:00+02:00', card: 'thursday-footwork', type: 'DONE', readiness: 'YELLOW', pain: defaultPain, weight: '', energy: 0, recovery: { areas: ['Rücken', 'Bauch'], soreness: 7, stiffness: 5, recommendation: 'pause' }, note: 'core/back loaded' },
+        { id: '7', date: '2026-06-03T20:00:00+02:00', card: 'wednesday-strength', type: 'DONE', readiness: 'YELLOW', pain: defaultPain, weight: '', energy: 0, recovery: { areas: ['Rücken'], soreness: 6, stiffness: 4, recommendation: 'mobility' }, note: 'back still tight' },
         { id: '2', date: '2026-06-02T08:00:00+02:00', card: 'tuesday-recovery', type: 'DONE', readiness: 'YELLOW', pain: defaultPain, weight: '', energy: 0, recovery: { areas: ['Rücken'], soreness: 5, stiffness: 4, recommendation: 'mobility' }, note: 'back tight' },
         { id: '3', date: '2026-06-01T21:00:00+02:00', card: 'monday-karate', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '93.8', energy: 0, trainingLoad: { cardio: 8, strength: 6 }, note: 'kizami' },
         { id: '4', date: '2026-05-31T18:30:00+02:00', card: 'sunday-review', type: 'DONE', readiness: 'YELLOW', pain: { knees: 2, achilles: 3, hips: 1, lowerBack: 1 }, weight: '94,5', waistCm: '105.0', energy: 5, note: 'distance' },
@@ -149,7 +151,7 @@ test.describe('Karate Cockpit V1', () => {
 
     await expect(page.getByRole('heading', { name: 'Analytics', exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Trend decision' })).toBeVisible();
-    await expect(page.getByText('Recovery debt')).toBeVisible();
+    await expect(page.getByText('Recovery debt', { exact: true })).toBeVisible();
     await expect(page.getByText('Weekly summary')).toBeVisible();
     await expect(page.getByText('Coach decision')).toBeVisible();
     await expect(page.getByText('93.8', { exact: true })).toBeVisible();
@@ -163,6 +165,12 @@ test.describe('Karate Cockpit V1', () => {
     await expect(page.getByRole('heading', { name: 'Recovery trend' })).toBeVisible();
     await expect(page.getByText('Avg soreness')).toBeVisible();
     await expect(page.getByText('Avg stiffness')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Soreness map' })).toBeVisible();
+    await expect(page.getByText('Most recurring: Rücken · 3 of last 4 recovery checks')).toBeVisible();
+    await expect(page.locator('[data-muscle-row="Rücken"]')).toContainText('recurring');
+    await expect(page.locator('[data-muscle-row="Unterschenkel"]')).toContainText('stable');
+    await expect(page.locator('[data-muscle-row="Unterarme"]')).toContainText('quiet');
+    await expect(page.locator('[data-muscle-row="Rücken"] [data-soreness-cell="high"]')).toHaveCount(3);
     await expect(page.getByText('Pain trend')).toHaveCount(0);
     await expect(page.getByText('Avg energy')).toHaveCount(0);
     await expect(page.locator('.timeline .log-row').first()).toContainText('loose legs');
@@ -175,10 +183,10 @@ test.describe('Karate Cockpit V1', () => {
     await expect(page.locator('[data-chart="waist-trend"]')).toContainText('104.0 cm');
     await expect(page.locator('[data-chart="cardio-load"]')).toContainText('8 /10');
     await expect(page.locator('[data-chart="strength-load"]')).toContainText('6 /10');
-    await expect(page.locator('[data-chart="soreness-trend"] svg[aria-label*="2 datapoints"]')).toBeVisible();
+    await expect(page.locator('[data-chart="soreness-trend"] svg[aria-label*="4 datapoints"]')).toBeVisible();
     await expect(page.locator('[data-chart="stiffness-trend"]')).toContainText('2 /10');
-    await expect(page.locator('[data-chart="consistency"]')).toContainText('4/14');
-    await expect(page.locator('[data-chart="readiness"]')).toContainText('2/2/0');
+    await expect(page.locator('[data-chart="consistency"]')).toContainText('6/14');
+    await expect(page.locator('[data-chart="readiness"]')).toContainText('2/4/0');
   });
 
   test('logging keeps more than 180 historical entries and preserves existing state', async ({ page }) => {

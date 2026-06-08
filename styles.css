@@ -408,6 +408,87 @@ textarea:focus { border-color: hsl(355 78% 52% / .7); box-shadow: 0 0 0 4px hsl(
 .log-row .kind { font-weight: 820; }
 .log-row .metric-detail { color: var(--secondary); font-size: 12px; }
 
+.soreness-map-card { border-color: hsl(42 92% 55% / .30); }
+.soreness-map {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.soreness-map-head,
+.soreness-map-row {
+  display: grid;
+  grid-template-columns: minmax(86px, .9fr) minmax(112px, 1.5fr) 78px;
+  gap: 10px;
+  align-items: center;
+}
+.soreness-map-head {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 860;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.soreness-map-row {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  padding: 9px 10px;
+  background: hsl(220 13% 10% / .64);
+}
+.muscle-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  font-weight: 820;
+}
+.soreness-cells {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8px, 1fr));
+  gap: 4px;
+  align-items: center;
+}
+.soreness-cell,
+.legend-cell {
+  display: inline-block;
+  border: 1px solid hsl(220 10% 34% / .70);
+  border-radius: 999px;
+  background: hsl(220 13% 7% / .84);
+}
+.soreness-cell {
+  min-width: 8px;
+  height: 18px;
+}
+.soreness-cell.mild,
+.legend-cell.mild { border-color: hsl(52 96% 58% / .44); background: hsl(52 96% 58% / .62); }
+.soreness-cell.medium,
+.legend-cell.medium { border-color: hsl(28 96% 58% / .48); background: hsl(28 96% 58% / .70); }
+.soreness-cell.high,
+.legend-cell.high { border-color: hsl(355 78% 55% / .55); background: hsl(355 78% 55% / .82); }
+.muscle-trend {
+  justify-self: end;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 8px;
+  color: var(--secondary);
+  background: hsl(220 13% 7% / .72);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.muscle-trend.building,
+.muscle-trend.recurring { color: hsl(42 100% 80%); border-color: hsl(42 92% 55% / .40); background: hsl(42 92% 55% / .16); }
+.muscle-trend.settling { color: hsl(145 78% 78%); border-color: hsl(145 60% 45% / .38); background: hsl(145 60% 45% / .15); }
+.muscle-trend.quiet { color: var(--muted); }
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 12px;
+}
+.legend-cell { width: 16px; height: 10px; }
+
 .week-grid { display: grid; gap: 10px; }
 .day-row {
   display: grid;

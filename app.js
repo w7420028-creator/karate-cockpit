@@ -73,6 +73,8 @@ const DEFAULT_STATE = {
   logs: []
 };
 
+const RECOVERY_AREAS = ["Unterschenkel", "Oberschenkel", "Bauch", "Rücken", "Oberarme", "Unterarme"];
+
 const app = document.querySelector("#app");
 let state = loadState();
 let route = "today";
@@ -285,7 +287,7 @@ function renderRecoveryInputs(prefix = "") {
       <div class="input-grid">
         <label class="field-label">Muscle soreness <span>tap areas</span></label>
         <div class="chip-grid" role="group" aria-label="Muscle soreness areas">
-          ${["Unterschenkel", "Oberschenkel", "Bauch", "Rücken", "Oberarme", "Unterarme"].map(area => {
+          ${RECOVERY_AREAS.map(area => {
             const active = state.recovery.areas.includes(area);
             return `<button class="chip-btn" type="button" data-soreness-area="${escapeHtml(area)}" aria-pressed="${active}">${escapeHtml(area)}</button>`;
           }).join("")}
@@ -441,6 +443,69 @@ function recoveryStats(logs, limit = 7) {
     recommendations,
     areas
   };
+}
+
+function recoveryCheckLogs(logs, limit = 14) {
+  return logs
+    .filter(log => log.recovery)
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, limit);
+}
+
+function sorenessCellLevel(value) {
+  if (!Number.isFinite(value) || value <= 0) return "none";
+  if (value <= 3) return "mild";
+  if (value <= 4) return "medium";
+  return "high";
+}
+
+function average(values) {
+  if (!values.length) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function muscleTrendLabel(valuesDesc, recentCount) {
+  const selected = valuesDesc.filter(value => Number.isFinite(value) && value > 0);
+  if (!selected.length) return "quiet";
+  if (recentCount >= 3) return "recurring";
+  if (selected.length < 3) return "stable";
+  const split = Math.ceil(selected.length / 2);
+  const recent = average(selected.slice(0, split));
+  const older = average(selected.slice(split));
+  if (older === null) return "stable";
+  if (recent >= older + 1) return "building";
+  if (recent <= older - 1) return "settling";
+  return "stable";
+}
+
+function sorenessMap(logs = state.logs) {
+  const recoveryLogs = recoveryCheckLogs(logs);
+  const recentWindow = recoveryLogs.slice(0, Math.min(4, recoveryLogs.length));
+  const rows = RECOVERY_AREAS.map(area => {
+    const valuesDesc = recoveryLogs.map(log => (log.recovery?.areas || []).includes(area) ? Number(log.recovery.soreness || 0) : null);
+    const recentCount = recentWindow.filter(log => (log.recovery?.areas || []).includes(area)).length;
+    const totalCount = valuesDesc.filter(value => Number.isFinite(value) && value > 0).length;
+    return {
+      area,
+      totalCount,
+      recentCount,
+      trend: muscleTrendLabel(valuesDesc, recentCount),
+      cells: [...recoveryLogs].reverse().map(log => {
+        const selected = (log.recovery?.areas || []).includes(area);
+        const value = selected ? Number(log.recovery.soreness || 0) : null;
+        return { date: log.date, value, level: sorenessCellLevel(value) };
+      })
+    };
+  });
+  const top = rows
+    .filter(row => row.recentCount > 0)
+    .sort((a, b) => b.recentCount - a.recentCount || b.totalCount - a.totalCount || RECOVERY_AREAS.indexOf(a.area) - RECOVERY_AREAS.indexOf(b.area))[0];
+  const summary = top
+    ? `Most recurring: ${top.area} · ${top.recentCount} of last ${recentWindow.length} recovery checks`
+    : recoveryLogs.length
+      ? "No recurring muscle soreness yet."
+      : "Add recovery check-ins to build the muscle map.";
+  return { logs: recoveryLogs, rows, summary };
 }
 
 function readinessStats(logs, days = 14) {
@@ -763,6 +828,37 @@ function renderDataExportCard(logs = state.logs) {
     </section>`;
 }
 
+function renderSorenessMap(logs = state.logs) {
+  const map = sorenessMap(logs);
+  const fallbackCells = Array.from({ length: 4 }, () => ({ date: "", value: null, level: "none" }));
+  return `
+    <section class="card soreness-map-card" style="margin-top:16px">
+      <h2>Soreness map</h2>
+      <p class="subtle">${escapeHtml(map.summary)}</p>
+      <div class="soreness-map" role="table" aria-label="Recovery muscle soreness trend">
+        <div class="soreness-map-head" role="row">
+          <span role="columnheader">Area</span>
+          <span role="columnheader">Last check-ins</span>
+          <span role="columnheader">Trend</span>
+        </div>
+        ${map.rows.map(row => `
+          <div class="soreness-map-row" role="row" data-muscle-row="${escapeHtml(row.area)}">
+            <span class="muscle-name" role="cell">${escapeHtml(row.area)}</span>
+            <span class="soreness-cells" role="cell" aria-label="${escapeHtml(row.area)} soreness history">
+              ${(row.cells.length ? row.cells : fallbackCells).map(cell => {
+                const valueLabel = Number.isFinite(cell.value) ? `${cell.value}/10` : "not selected";
+                const dateLabel = cell.date ? new Date(cell.date).toLocaleDateString(undefined, { weekday: "short", day: "2-digit" }) : "no log";
+                return `<span class="soreness-cell ${cell.level}" data-soreness-cell="${cell.level}" title="${escapeHtml(`${dateLabel}: ${valueLabel}`)}" aria-label="${escapeHtml(`${dateLabel}: ${valueLabel}`)}"></span>`;
+              }).join("")}
+            </span>
+            <strong class="muscle-trend ${escapeHtml(row.trend)}" role="cell">${escapeHtml(row.trend)}</strong>
+          </div>
+        `).join("")}
+      </div>
+      <p class="subtle map-legend"><span class="legend-cell mild"></span>mild <span class="legend-cell medium"></span>medium <span class="legend-cell high"></span>high</p>
+    </section>`;
+}
+
 
 function renderList(items) {
   return `<ol class="plain-list">${items.map((item, index) => `<li data-index="${index + 1}">${escapeHtml(item)}</li>`).join("")}</ol>`;
@@ -1017,6 +1113,7 @@ function renderProgress() {
         </div>
         <p class="subtle" style="margin-top:10px">${recovery.areas.length ? `Recent areas: ${recovery.areas.map(escapeHtml).join(", ")}.` : "Add recovery check-ins to see common sore areas."}</p>
       </section>
+      ${renderSorenessMap(logs)}
       <section class="card" style="margin-top:16px">
         <h2>Readiness mix</h2>
         <div class="readiness-strip">

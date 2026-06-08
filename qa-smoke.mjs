@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const source = fs.readFileSync('app.js', 'utf8') + '\nObject.assign(globalThis, { CARDS, state, VAPID_PUBLIC_KEY, renderToday, renderProgress, renderInsights, renderNotifications, pushCapability, urlBase64ToUint8Array, logSession, weightTrend, waistTrend, trendEngine, renderReviewInputs, renderList, metricPoints, exportLogsAsJson, exportLogsAsCsv });';
+const source = fs.readFileSync('app.js', 'utf8') + '\nObject.assign(globalThis, { CARDS, state, VAPID_PUBLIC_KEY, renderToday, renderProgress, renderInsights, renderNotifications, pushCapability, urlBase64ToUint8Array, logSession, weightTrend, waistTrend, trendEngine, sorenessMap, renderSorenessMap, renderReviewInputs, renderList, metricPoints, exportLogsAsJson, exportLogsAsCsv });';
 function makeEl(tag = 'div') {
   return {
     tag,
@@ -82,8 +82,9 @@ if (context.waistTrend(context.state.logs).latest !== '104.0') throw new Error('
 if (context.karateLoadStats(context.state.logs).avgCardio !== 8) throw new Error('cardio load stat failed');
 if (context.recoveryStats(context.state.logs).avgSoreness !== 5) throw new Error('soreness stat failed');
 if (!context.trendEngine(context.state.logs).decision.label) throw new Error('trend engine decision missing');
+if (context.sorenessMap(context.state.logs).rows.find(row => row.area === 'Rücken')?.trend !== 'stable') throw new Error('soreness map row trend failed');
 const progress = context.renderProgress();
-for (const token of ['Trend decision', 'Recovery debt', 'Weekly summary', 'Transformation', 'Coach decision', 'Data export', 'Export JSON', 'Export CSV', 'Bodyweight', 'Karate load', 'Recovery trend', 'Readiness mix', 'Open charts', 'iPhone notifications', 'data-route="notifications"']) {
+for (const token of ['Trend decision', 'Recovery debt', 'Weekly summary', 'Transformation', 'Coach decision', 'Data export', 'Export JSON', 'Export CSV', 'Bodyweight', 'Karate load', 'Recovery trend', 'Soreness map', 'data-muscle-row="Rücken"', 'Readiness mix', 'Open charts', 'iPhone notifications', 'data-route="notifications"']) {
   if (!progress.includes(token)) throw new Error(`progress missing ${token}`);
 }
 const insights = context.renderInsights();
@@ -98,7 +99,7 @@ for (const token of ['One-time iPhone push setup', 'IOS_PUSH_SUBSCRIPTION', 'No 
 if (context.urlBase64ToUint8Array(context.VAPID_PUBLIC_KEY).length !== 65) throw new Error('VAPID public key should decode to a P-256 public key');
 
 const swSource = fs.readFileSync('sw.js', 'utf8');
-for (const token of ['karate-cockpit-v21', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
+for (const token of ['karate-cockpit-v22', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
   if (!swSource.includes(token)) throw new Error(`service worker push coverage missing ${token}`);
 }
 context.state.logs = [context.state.logs[0]];
