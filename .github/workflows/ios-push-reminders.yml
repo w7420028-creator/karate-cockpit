@@ -35,3 +35,4 @@ jobs:
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
           IOS_PUSH_SUBSCRIPTION: ${{ secrets.IOS_PUSH_SUBSCRIPTION }}
           FORCE_REMINDER_KEY: ${{ inputs.force_reminder_key }}
+          REMINDER_GRACE_MINUTES: 25

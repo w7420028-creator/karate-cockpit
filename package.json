@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "python3 -m http.server 4173",
-    "check": "node --check app.js && node --check sw.js && node --check scripts/send-ios-push-reminder.mjs && python3 -m json.tool manifest.webmanifest >/dev/null && npm run smoke && npm run test:e2e",
+    "check": "node --check app.js && node --check sw.js && node --check scripts/send-ios-push-reminder.mjs && python3 -m json.tool manifest.webmanifest >/dev/null && npm run smoke && npm run test:reminders && npm run test:e2e",
     "smoke": "node qa-smoke.mjs",
+    "test:reminders": "node tests/push-reminders.test.mjs",
     "test:e2e": "playwright test",
     "test:e2e:webkit": "playwright test --project=\"Mobile Safari-ish WebKit\""
   },

@@ -1,19 +1,20 @@
 import webpush from 'web-push';
+import { pathToFileURL } from 'node:url';
 
 const APP_URL = process.env.APP_URL || 'https://w7420028-creator.github.io/karate-cockpit/';
 const TIME_ZONE = 'Europe/Berlin';
-const GRACE_MINUTES = Number(process.env.REMINDER_GRACE_MINUTES || 12);
+const GRACE_MINUTES = Number(process.env.REMINDER_GRACE_MINUTES || 25);
 
 const REMINDERS = [
-  { key: 'mon-prep', weekday: 1, time: '08:00', title: 'Karate prep today', body: '6 min joint prep. Then karate. Ego off, mechanics clean.' },
-  { key: 'mon-post', weekday: 1, time: '21:30', title: 'Post-karate check-in', body: 'Log pain, energy, and one sharp feeling. No debt.' },
-  { key: 'tue-recovery', weekday: 2, time: '07:30', title: 'Recovery engine', body: 'Easy Zone 2 or the minimum: 10 min walk + calves + couch stretch.' },
-  { key: 'wed-strength', weekday: 3, time: '20:00', title: 'Strength / tendon A', body: 'Durability before danger. Keep RPE controlled and respect pain rules.' },
-  { key: 'thu-footwork', weekday: 4, time: '20:30', title: 'Footwork + mobility', body: 'Quiet feet. Clean timing. No maximal acceleration in Phase 1.' },
-  { key: 'fri-prep', weekday: 5, time: '08:00', title: 'Karate prep today', body: '6 min joint prep before class. Cap intensity by joint state.' },
-  { key: 'fri-post', weekday: 5, time: '21:30', title: 'Post-karate check-in', body: 'Log today. Pain signals decide the weekend.' },
-  { key: 'sat-optional', weekday: 6, time: '09:30', title: 'Optional stable-week work', body: 'Only if joints are quiet and sleep is decent. Otherwise family walk is perfect.' },
-  { key: 'sun-review', weekday: 0, time: '20:30', title: 'Sunday review', body: 'Three-minute review: weight, pain, energy, one best kumite feeling.' }
+  { key: 'mon-prep', weekday: 1, time: '08:00', title: 'Karate today', body: '6 min joint prep before class. After training, log conditioning and strength effort.' },
+  { key: 'mon-post', weekday: 1, time: '21:30', title: 'Post-karate check', body: 'Log conditioning, strength effort, and any overload note. No extra training tonight.' },
+  { key: 'tue-recovery', weekday: 2, time: '07:30', title: 'Recovery check', body: 'Check muscle soreness and stiffness first. Then choose normal, reduced, mobility, or pause.' },
+  { key: 'wed-strength', weekday: 3, time: '20:00', title: 'Strength if recovered', body: 'Check soreness before strength. Green = tendon work, yellow = reduced, red = mobility or pause.' },
+  { key: 'thu-footwork', weekday: 4, time: '20:30', title: 'Footwork if legs are ready', body: 'Check soreness before footwork. Keep it light if calves, hips, or knees are still loaded.' },
+  { key: 'fri-prep', weekday: 5, time: '08:00', title: 'Karate today', body: '6 min joint prep before class. Later: post-karate conditioning and strength check.' },
+  { key: 'fri-post', weekday: 5, time: '21:30', title: 'Post-karate check', body: 'Log conditioning, strength effort, and where the body feels overloaded. Weekend adapts from this.' },
+  { key: 'sat-optional', weekday: 6, time: '09:30', title: 'Recovery first', body: 'Check soreness and sleep before optional work. If not green, family walk or mobility is enough.' },
+  { key: 'sun-review', weekday: 0, time: '20:30', title: 'Sunday review', body: 'Keep weight tracking: enter weight, review recovery, and set the next week calmly.' }
 ];
 
 function missing(name) {
@@ -112,8 +113,10 @@ async function main() {
   }
 }
 
-main().catch(error => {
-  console.log(`Push reminders skipped after unexpected error: ${error?.message || error}`);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(error => {
+    console.log(`Push reminders skipped after unexpected error: ${error?.message || error}`);
+  });
+}
 
 export { REMINDERS, berlinParts, dueReminders, parseSubscriptionSecret };

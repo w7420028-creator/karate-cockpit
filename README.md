@@ -96,6 +96,15 @@ Analytics are derived from these logs: planned-vs-actual can be reconstructed fr
 ## iOS Web Push reminders
 
 No Cloudflare/backend is used. The public PWA creates an iPhone Web Push subscription locally, exports it as a setup code, and a private GitHub Actions workflow sends reminders with VAPID secrets.
+Push setup is intentionally gated to the installed iPhone Home Screen PWA. Opening the site in a normal browser may show setup instructions, but it should not create a subscription there.
+GitHub scheduled runs can start late, so the sender accepts reminders within a 25-minute Europe/Berlin grace window to avoid missed notifications without overlapping adjacent half-hour runs.
+
+Current reminder behavior:
+
+- Monday/Friday morning: karate prep and joint-prep reminder.
+- Monday/Friday evening: post-karate conditioning effort, strength effort, and overload-note reminder.
+- Tuesday/Wednesday/Thursday/Saturday: recovery/soreness-first reminder before any optional work.
+- Sunday: weight tracking and weekly review reminder.
 
 Frontend public VAPID key committed in `app.js`:
 

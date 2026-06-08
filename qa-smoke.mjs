@@ -92,13 +92,13 @@ for (const token of ['iPhone native push', 'Set up notifications', 'data-route="
   if (!plan.includes(token)) throw new Error(`plan notification entry missing ${token}`);
 }
 const notificationSetup = context.renderNotifications();
-for (const token of ['One-time iPhone push setup', 'IOS_PUSH_SUBSCRIPTION', 'No private VAPID key or GitHub token', 'Copy setup code']) {
+for (const token of ['One-time iPhone push setup', 'IOS_PUSH_SUBSCRIPTION', 'No private VAPID key or GitHub token', 'Copy setup code', 'post-karate conditioning and strength']) {
   if (!notificationSetup.includes(token)) throw new Error(`notification setup missing ${token}`);
 }
 if (context.urlBase64ToUint8Array(context.VAPID_PUBLIC_KEY).length !== 65) throw new Error('VAPID public key should decode to a P-256 public key');
 
 const swSource = fs.readFileSync('sw.js', 'utf8');
-for (const token of ['karate-cockpit-v13', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
+for (const token of ['karate-cockpit-v14', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
   if (!swSource.includes(token)) throw new Error(`service worker push coverage missing ${token}`);
 }
 context.state.logs = [context.state.logs[0]];

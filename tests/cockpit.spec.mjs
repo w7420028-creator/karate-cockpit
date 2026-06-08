@@ -257,6 +257,7 @@ test.describe('Karate Cockpit V1', () => {
     await expect(page.getByText(/iOS only allows Web Push/)).toBeVisible();
     await expect(page.getByText('IOS_PUSH_SUBSCRIPTION')).toHaveCount(2);
     await expect(page.getByText(/No private VAPID key or GitHub token/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Allow notifications' })).toBeDisabled();
     await expect(page.locator('.subscription-export').first()).toBeVisible();
   });
 

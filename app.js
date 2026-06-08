@@ -945,7 +945,7 @@ function renderNotifications() {
           <h2>2 · Create subscription</h2>
           <p class="subtle">This asks iOS for notification permission, subscribes this iPhone to the app’s public VAPID key, then creates an export code. No private VAPID key or GitHub token enters the app.</p>
           <div class="actions" style="margin-top:14px">
-            <button class="btn primary" data-push-subscribe>${pushExportJson ? "Refresh setup code" : "Allow notifications"}</button>
+            <button class="btn primary" data-push-subscribe ${capability.ready ? "" : "disabled"}>${pushExportJson ? "Refresh setup code" : "Allow notifications"}</button>
             <button class="btn secondary" data-push-copy ${pushSetupCode ? "" : "disabled"}>Copy setup code</button>
           </div>
           ${pushStatus ? `<p class="push-status">${escapeHtml(pushStatus)}</p>` : ""}
@@ -963,7 +963,7 @@ function renderNotifications() {
 
         <div class="card">
           <h2>What you’ll receive</h2>
-          ${renderList(["Karate prep reminders on Monday/Friday mornings", "Recovery, strength, footwork, optional engine, and Sunday review nudges", "A tap opens Karate Cockpit directly at the public app URL"])}
+          ${renderList(["Monday/Friday morning karate prep reminders", "Monday/Friday post-karate conditioning and strength check reminders", "Between-karate recovery, soreness, optional work, and Sunday weight-review nudges", "A tap opens Karate Cockpit directly at the public app URL"])}
           <button class="btn ghost" style="margin-top:14px" data-route="plan">Back to plan</button>
         </div>
       </section>
@@ -982,7 +982,7 @@ function pushCapability() {
   else if (!serviceWorker) reason = "This browser does not expose service workers.";
   else if (!notification || !push) reason = "This browser does not expose Web Push. On iPhone use iOS 16.4+ Safari and the Home Screen app.";
   else if (!standalone) reason = "On iPhone, add Karate Cockpit to the Home Screen and open that icon before allowing notifications.";
-  return { secure, serviceWorker, notification, push, standalone, ready: secure && serviceWorker && notification && push, reason };
+  return { secure, serviceWorker, notification, push, standalone, ready: secure && serviceWorker && notification && push && standalone, reason };
 }
 
 async function setupPushNotifications() {
