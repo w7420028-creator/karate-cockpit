@@ -409,6 +409,7 @@ textarea:focus { border-color: hsl(355 78% 52% / .7); box-shadow: 0 0 0 4px hsl(
 .log-row .metric-detail { color: var(--secondary); font-size: 12px; }
 
 .soreness-map-card { border-color: hsl(42 92% 55% / .30); }
+.heatmap-summary { margin-top: 12px; }
 .soreness-map {
   display: grid;
   gap: 8px;
@@ -447,6 +448,7 @@ textarea:focus { border-color: hsl(355 78% 52% / .7); box-shadow: 0 0 0 4px hsl(
   gap: 4px;
   align-items: center;
 }
+.soreness-map.expanded .soreness-cells { grid-template-columns: repeat(auto-fit, minmax(6px, 1fr)); }
 .soreness-cell,
 .legend-cell {
   display: inline-block;

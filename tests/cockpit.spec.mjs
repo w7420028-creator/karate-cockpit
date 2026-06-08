@@ -185,6 +185,10 @@ test.describe('Karate Cockpit V1', () => {
     await expect(page.locator('[data-chart="strength-load"]')).toContainText('6 /10');
     await expect(page.locator('[data-chart="soreness-trend"] svg[aria-label*="4 datapoints"]')).toBeVisible();
     await expect(page.locator('[data-chart="stiffness-trend"]')).toContainText('2 /10');
+    await expect(page.locator('[data-chart="muscle-heatmap"]')).toContainText('Muscle heatmap');
+    await expect(page.locator('[data-chart="muscle-heatmap"]')).toContainText('Most recurring: Rücken · 3 of last 4 recovery checks');
+    await expect(page.locator('[data-chart="muscle-heatmap"] [data-muscle-row="Rücken"]')).toContainText('recurring');
+    await expect(page.locator('[data-chart="muscle-heatmap"] [data-muscle-row="Rücken"] [data-soreness-cell="high"]')).toHaveCount(3);
     await expect(page.locator('[data-chart="consistency"]')).toContainText('6/14');
     await expect(page.locator('[data-chart="readiness"]')).toContainText('2/4/0');
   });

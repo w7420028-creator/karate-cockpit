@@ -88,7 +88,7 @@ for (const token of ['Trend decision', 'Recovery debt', 'Weekly summary', 'Trans
   if (!progress.includes(token)) throw new Error(`progress missing ${token}`);
 }
 const insights = context.renderInsights();
-for (const token of ['Visual cockpit', 'data-chart="weight-trend"', 'data-chart="waist-trend"', 'data-chart="cardio-load"', 'data-chart="strength-load"', 'data-chart="soreness-trend"', 'data-chart="stiffness-trend"', 'data-chart="consistency"']) {
+for (const token of ['Visual cockpit', 'data-chart="weight-trend"', 'data-chart="waist-trend"', 'data-chart="cardio-load"', 'data-chart="strength-load"', 'data-chart="soreness-trend"', 'data-chart="stiffness-trend"', 'data-chart="muscle-heatmap"', 'Muscle heatmap', 'data-chart="consistency"']) {
   if (!insights.includes(token)) throw new Error(`insights missing ${token}`);
 }
 if (context.metricPoints(context.state.logs, log => log.trainingLoad?.cardio).length !== 1) throw new Error('cardio chart points missing');
@@ -99,7 +99,7 @@ for (const token of ['One-time iPhone push setup', 'IOS_PUSH_SUBSCRIPTION', 'No 
 if (context.urlBase64ToUint8Array(context.VAPID_PUBLIC_KEY).length !== 65) throw new Error('VAPID public key should decode to a P-256 public key');
 
 const swSource = fs.readFileSync('sw.js', 'utf8');
-for (const token of ['karate-cockpit-v22', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
+for (const token of ['karate-cockpit-v23', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
   if (!swSource.includes(token)) throw new Error(`service worker push coverage missing ${token}`);
 }
 context.state.logs = [context.state.logs[0]];

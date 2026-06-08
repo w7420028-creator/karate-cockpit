@@ -478,8 +478,8 @@ function muscleTrendLabel(valuesDesc, recentCount) {
   return "stable";
 }
 
-function sorenessMap(logs = state.logs) {
-  const recoveryLogs = recoveryCheckLogs(logs);
+function sorenessMap(logs = state.logs, limit = 14) {
+  const recoveryLogs = recoveryCheckLogs(logs, limit);
   const recentWindow = recoveryLogs.slice(0, Math.min(4, recoveryLogs.length));
   const rows = RECOVERY_AREAS.map(area => {
     const valuesDesc = recoveryLogs.map(log => (log.recovery?.areas || []).includes(area) ? Number(log.recovery.soreness || 0) : null);
@@ -859,6 +859,40 @@ function renderSorenessMap(logs = state.logs) {
     </section>`;
 }
 
+function renderMuscleHeatmapChart(logs = state.logs) {
+  const map = sorenessMap(logs, 30);
+  const fallbackCells = Array.from({ length: 8 }, () => ({ date: "", value: null, level: "none" }));
+  return `
+    <article class="chart-card soreness-map-card" data-chart="muscle-heatmap">
+      <div class="chart-head">
+        <div><h2>Muscle heatmap</h2><p class="subtle">Last ${map.logs.length || 0} recovery check-ins across your six muscle areas.</p></div>
+        <div class="chart-stat"><strong>${map.logs.length || 0}</strong><span>checks</span></div>
+      </div>
+      <p class="subtle heatmap-summary">${escapeHtml(map.summary)}</p>
+      <div class="soreness-map expanded" role="table" aria-label="Muscle soreness heatmap">
+        <div class="soreness-map-head" role="row">
+          <span role="columnheader">Area</span>
+          <span role="columnheader">History</span>
+          <span role="columnheader">Trend</span>
+        </div>
+        ${map.rows.map(row => `
+          <div class="soreness-map-row" role="row" data-muscle-row="${escapeHtml(row.area)}">
+            <span class="muscle-name" role="cell">${escapeHtml(row.area)}</span>
+            <span class="soreness-cells" role="cell" aria-label="${escapeHtml(row.area)} soreness history">
+              ${(row.cells.length ? row.cells : fallbackCells).map(cell => {
+                const valueLabel = Number.isFinite(cell.value) ? `${cell.value}/10` : "not selected";
+                const dateLabel = cell.date ? new Date(cell.date).toLocaleDateString(undefined, { weekday: "short", day: "2-digit" }) : "no log";
+                return `<span class="soreness-cell ${cell.level}" data-soreness-cell="${cell.level}" title="${escapeHtml(`${dateLabel}: ${valueLabel}`)}" aria-label="${escapeHtml(`${dateLabel}: ${valueLabel}`)}"></span>`;
+              }).join("")}
+            </span>
+            <strong class="muscle-trend ${escapeHtml(row.trend)}" role="cell">${escapeHtml(row.trend)}</strong>
+          </div>
+        `).join("")}
+      </div>
+      <p class="subtle map-legend"><span class="legend-cell mild"></span>mild <span class="legend-cell medium"></span>medium <span class="legend-cell high"></span>high</p>
+    </article>`;
+}
+
 
 function renderList(items) {
   return `<ol class="plain-list">${items.map((item, index) => `<li data-index="${index + 1}">${escapeHtml(item)}</li>`).join("")}</ol>`;
@@ -892,6 +926,7 @@ function renderInsights() {
         ${renderSparkChart({ title: "Strength load", subtitle: `Post-karate strength effort · avg ${formatAverage(load.avgStrength)}/10.`, points: strengthPoints, unit: "/10", tone: "load-stable", min: 0, max: 10 })}
         ${renderSparkChart({ title: "Soreness trend", subtitle: `Between-karate soreness · avg ${formatAverage(recovery.avgSoreness)}/10.`, points: sorenessPoints, unit: "/10", tone: "load-high", min: 0, max: 10 })}
         ${renderSparkChart({ title: "Stiffness trend", subtitle: `Between-karate stiffness · avg ${formatAverage(recovery.avgStiffness)}/10.`, points: stiffnessPoints, unit: "/10", tone: "load-stable", min: 0, max: 10 })}
+        ${renderMuscleHeatmapChart(logs)}
         ${renderConsistencyChart(logs)}
         ${renderReadinessBars(logs)}
       </section>
