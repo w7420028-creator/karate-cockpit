@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const source = fs.readFileSync('app.js', 'utf8') + '\nObject.assign(globalThis, { CARDS, state, VAPID_PUBLIC_KEY, renderToday, renderProgress, renderInsights, renderPlan, renderNotifications, pushCapability, urlBase64ToUint8Array, openSession, logSession, weightTrend, averageEnergy, renderReviewInputs, renderList, renderExerciseDiagram, diagramKeyForItem, demoKeyForItem, renderDemoLink, metricPoints, exportLogsAsJson, exportLogsAsCsv });';
+const source = fs.readFileSync('app.js', 'utf8') + '\nObject.assign(globalThis, { CARDS, state, VAPID_PUBLIC_KEY, renderToday, renderProgress, renderInsights, renderNotifications, pushCapability, urlBase64ToUint8Array, logSession, weightTrend, averageEnergy, renderReviewInputs, renderList, renderExerciseDiagram, diagramKeyForItem, demoKeyForItem, renderDemoLink, metricPoints, exportLogsAsJson, exportLogsAsCsv });';
 function makeEl(tag = 'div') {
   return {
     tag,
@@ -63,6 +63,10 @@ const tuesdayHtml = context.renderReviewInputs(context.CARDS[2]);
 for (const token of ['Recovery check', 'Muscle soreness', 'id="recovery-soreness"', 'calves/Achilles', 'data-recovery-recommendation']) {
   if (!tuesdayHtml.includes(token)) throw new Error(`Tuesday recovery input missing ${token}`);
 }
+const todayHtml = context.renderToday();
+for (const token of ['Full session', 'Minimum version', 'data-start="full"', 'data-start="minimum"', 'data-log="MINIMUM"']) {
+  if (todayHtml.includes(token)) throw new Error(`today should not expose session/program control ${token}`);
+}
 context.state.logs = [
   { date: new Date().toISOString(), type: 'DONE', readiness: 'GREEN', pain: { knees: 1, achilles: 2, hips: 1, lowerBack: 0 }, weight: '94,0', energy: 0, note: 'test' },
   { date: new Date(Date.now() - 7*864e5).toISOString(), type: 'MINIMUM', readiness: 'YELLOW', pain: { knees: 2, achilles: 2, hips: 1, lowerBack: 1 }, weight: '94.7', energy: 5, note: 'test' }
@@ -70,7 +74,7 @@ context.state.logs = [
 if (context.weightTrend(context.state.logs).latest !== '94.0') throw new Error('weight latest failed');
 if (context.averageEnergy(context.state.logs, 7) !== 2.5) throw new Error('energy zero should count');
 const progress = context.renderProgress();
-for (const token of ['Coach decision', 'Data export', 'Export JSON', 'Export CSV', 'Bodyweight', 'Pain trend', 'Readiness + recovery', 'Open charts']) {
+for (const token of ['Coach decision', 'Data export', 'Export JSON', 'Export CSV', 'Bodyweight', 'Pain trend', 'Readiness + recovery', 'Open charts', 'iPhone notifications', 'data-route="notifications"']) {
   if (!progress.includes(token)) throw new Error(`progress missing ${token}`);
 }
 const insights = context.renderInsights();
@@ -87,18 +91,14 @@ if (context.diagramKeyForItem('Slow calf raises', context.CARDS[1]) !== 'calf') 
 if (context.diagramKeyForItem('6-min joint prep only', context.CARDS[1]) !== 'mobility') throw new Error('joint prep icon classification failed');
 if (context.demoKeyForItem('Retreat + gyaku-zuki counter', context.CARDS[4]) !== 'counter') throw new Error('karate counter demo classification failed');
 if (context.demoKeyForItem('If class is impossible: no make-up workout', context.CARDS[1]) !== '') throw new Error('non-exercise item should not have a demo link');
-const plan = context.renderPlan();
-for (const token of ['iPhone native push', 'Set up notifications', 'data-route="notifications"']) {
-  if (!plan.includes(token)) throw new Error(`plan notification entry missing ${token}`);
-}
 const notificationSetup = context.renderNotifications();
-for (const token of ['One-time iPhone push setup', 'IOS_PUSH_SUBSCRIPTION', 'No private VAPID key or GitHub token', 'Copy setup code', 'post-karate conditioning and strength']) {
+for (const token of ['One-time iPhone push setup', 'IOS_PUSH_SUBSCRIPTION', 'No private VAPID key or GitHub token', 'Copy setup code', 'post-karate conditioning and strength', 'Back to progress']) {
   if (!notificationSetup.includes(token)) throw new Error(`notification setup missing ${token}`);
 }
 if (context.urlBase64ToUint8Array(context.VAPID_PUBLIC_KEY).length !== 65) throw new Error('VAPID public key should decode to a P-256 public key');
 
 const swSource = fs.readFileSync('sw.js', 'utf8');
-for (const token of ['karate-cockpit-v14', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
+for (const token of ['karate-cockpit-v15', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
   if (!swSource.includes(token)) throw new Error(`service worker push coverage missing ${token}`);
 }
 context.state.logs = [context.state.logs[0]];
@@ -108,9 +108,9 @@ if (!firstMarker.includes('first marker · keep logging')) throw new Error('sing
 // Same-day logging should update, not duplicate.
 context.state.logs = [];
 context.logSession('DONE');
-context.logSession('MINIMUM');
+context.logSession('DONE');
 if (context.state.logs.length !== 1) throw new Error('same-day duplicate log was not replaced');
-if (context.state.logs[0].type !== 'MINIMUM') throw new Error('same-day update did not keep latest log');
+if (context.state.logs[0].type !== 'DONE') throw new Error('same-day update did not keep latest log');
 
 // New logs must not truncate historical analytics data.
 context.state.logs = Array.from({ length: 181 }, (_, index) => ({

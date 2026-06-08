@@ -1,6 +1,6 @@
 # Karate Cockpit V1
 
-Standalone iOS-first PWA for Christian's karate return plan.
+Standalone iOS-first PWA for Christian's karate check-ins.
 
 ## Run locally
 
@@ -37,10 +37,11 @@ Deployment:
 ## V1 behavior
 
 - Opens directly to Today.
-- Daily card is derived from the weekly rhythm in `../README.md`.
-- Logs `DONE`, `MINIMUM`, `SKIPPED`, readiness, and the right check-in for the day to `localStorage`.
+- Daily check-in mode is derived from the weekly rhythm in `../README.md`.
+- Logs `DONE` or `SKIPPED`, readiness, and the right check-in for the day to `localStorage`. Older `MINIMUM` logs are still readable/exportable for history, but the active UI no longer offers session/program tracking.
 - Monday/Friday use a post-karate check for conditioning effort, strength effort, and overload notes.
 - Days between karate use a recovery check for muscle-soreness areas, soreness intensity, stiffness, and recommendation.
+- The active UI has only Today and Progress. Session/program cards and the old Plan tab are intentionally removed for now.
 - Sleep is optional/import-ready for AutoSleep/Apple Health values; the PWA does not directly read HealthKit.
 - Offline-capable via service worker.
 - Native Web Push-capable for installed iOS Home Screen PWA reminders.
@@ -77,7 +78,7 @@ Log entry shape:
   "id": "uuid-or-timestamp",
   "date": "ISO-8601 timestamp",
   "card": "sunday-review|monday-karate|tuesday-recovery|wednesday-strength|thursday-footwork|friday-karate|saturday-optional",
-  "type": "DONE|MINIMUM|SKIPPED",
+  "type": "DONE|SKIPPED",
   "readiness": "GREEN|YELLOW|RED",
   "pain": { "knees": 0, "achilles": 0, "hips": 0, "lowerBack": 0 },
   "trainingLoad": { "cardio": 8, "strength": 6 },
@@ -91,7 +92,7 @@ Log entry shape:
 }
 ```
 
-Analytics are derived from these logs: planned-vs-actual can be reconstructed from `date` + `card` + `type`, weight from `weight`, pain from per-area pain values, energy from `energy`, completion mix from `DONE`/`MINIMUM`/`SKIPPED`, and skip classification from `skipReason`. Data is durable for the installed browser profile, including offline use. The Progress screen exports the full uncapped log history as raw JSON or flattened CSV for later analytics. There is no backend sync yet.
+Analytics are derived from these logs: planned-vs-actual can be reconstructed from `date` + `card` + `type`, weight from `weight`, pain from per-area pain values, energy from `energy`, completion mix from `DONE`/`SKIPPED`, and skip classification from `skipReason`. Existing historical `MINIMUM` logs remain counted/exported. Data is durable for the installed browser profile, including offline use. The Progress screen exports the full uncapped log history as raw JSON or flattened CSV for later analytics. There is no backend sync yet.
 
 ## iOS Web Push reminders
 
@@ -116,14 +117,14 @@ Required private repo secrets:
 
 - `VAPID_PUBLIC_KEY` — same value as the frontend constant above
 - `VAPID_PRIVATE_KEY` — matching private key; never commit it
-- `IOS_PUSH_SUBSCRIPTION` — copied from the app’s Plan → Set up notifications screen after subscribing on the iPhone
+- `IOS_PUSH_SUBSCRIPTION` — copied from the app’s Progress → iPhone notifications screen after subscribing on the iPhone
 - Optional: `VAPID_SUBJECT` — `mailto:` or URL contact for VAPID; defaults to the GitHub repo URL
 
 iPhone registration:
 
 1. Open <https://w7420028-creator.github.io/karate-cockpit/> in Safari.
 2. Share → Add to Home Screen → open the installed `Karate` icon.
-3. Go to Plan → Set up notifications.
+3. Go to Progress → iPhone notifications.
 4. Tap Allow notifications.
 5. Copy the setup code and store it as the private `IOS_PUSH_SUBSCRIPTION` GitHub Secret.
 

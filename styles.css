@@ -451,42 +451,6 @@ textarea:focus { border-color: hsl(355 78% 52% / .7); box-shadow: 0 0 0 4px hsl(
   background: hsl(355 78% 52% / .15);
 }
 
-.session-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  display: grid;
-  place-items: end center;
-  padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);
-  background: hsl(220 13% 4% / .74);
-  backdrop-filter: blur(22px);
-  animation: fade 220ms var(--exit) both;
-}
-.session-panel {
-  width: min(460px, 100%);
-  max-height: min(740px, 92svh);
-  overflow: auto;
-  border: 1px solid var(--line);
-  border-radius: 34px;
-  padding: 20px;
-  background: linear-gradient(180deg, hsl(220 13% 14%), hsl(220 13% 9%));
-  box-shadow: 0 -24px 80px hsl(0 0% 0% / .42);
-  animation: sheet 420ms var(--spring) both;
-}
-@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes sheet { from { transform: translateY(30px) scale(.98); } to { transform: translateY(0) scale(1); } }
-.timer {
-  display: grid;
-  place-items: center;
-  min-height: 150px;
-  border: 1px solid hsl(355 78% 52% / .36);
-  border-radius: 28px;
-  margin: 16px 0;
-  background: radial-gradient(circle at 50% 20%, hsl(355 78% 52% / .20), transparent 65%), hsl(220 13% 8%);
-  font-size: 54px;
-  font-weight: 860;
-  letter-spacing: -0.07em;
-}
 .check-item {
   display: grid;
   grid-template-columns: 34px 1fr;

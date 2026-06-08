@@ -177,8 +177,6 @@ const app = document.querySelector("#app");
 let state = loadState();
 let route = "today";
 let toastTimer;
-let sessionTimer;
-let timerSeconds = 0;
 let pushExportJson = "";
 let pushSetupCode = "";
 let pushStatus = "";
@@ -297,7 +295,8 @@ function checkinReadiness(card = currentCard()) {
 }
 
 function render() {
-  const screen = route === "progress" ? renderProgress() : route === "insights" ? renderInsights() : route === "notifications" ? renderNotifications() : route === "plan" ? renderPlan() : renderToday();
+  if (route === "plan") route = "today";
+  const screen = route === "progress" ? renderProgress() : route === "insights" ? renderInsights() : route === "notifications" ? renderNotifications() : renderToday();
   app.innerHTML = `${screen}${renderNav()}`;
   bindCommonEvents();
 }
@@ -334,10 +333,7 @@ function renderToday() {
         <h2 class="command">${completedToday ? "Completed today." : skippedToday ? "Skipped today. No debt." : card.command}</h2>
         <p class="subtle">${completedToday ? "You can update today’s entry, but the app will not create duplicate logs for this card." : skippedToday ? "Continue with the next scheduled card. Update only if the situation changed." : card.reason}</p>
         ${todaysLog ? `<div class="today-status ${todaysLog.type.toLowerCase()}"><strong>${todaysLog.type}</strong><span>${formatLogLine(todaysLog)}</span></div>` : ""}
-        <div class="actions wide">
-          <button class="btn primary" data-start="full">${completedToday ? "Update entry" : "Start full"}</button>
-          <button class="btn secondary" ${completedToday ? 'data-route="progress"' : 'data-start="minimum"'}>${completedToday ? "View analytics" : "Minimum"}</button>
-        </div>
+        ${completedToday ? `<div class="actions wide"><button class="btn secondary" data-route="progress">View analytics</button></div>` : ""}
       </section>
 
       <section class="stack" style="margin-top:16px">
@@ -347,25 +343,10 @@ function renderToday() {
           ${renderReadinessControl()}
         </div>
         <div class="card">
-          <h2>Full session</h2>
-          ${renderList(card.full, card)}
-        </div>
-        <div class="card">
-          <h2>Minimum version</h2>
-          ${renderList(card.minimum, card)}
-        </div>
-        <div class="card">
-          <h2>Pain rule</h2>
-          <p class="subtle">${card.painRule}</p>
-        </div>
-        <div class="card">
           <h2>${card.key === "sunday-review" ? "Sunday Review" : "30-sec check-in"}</h2>
           ${renderReviewInputs(card)}
           <div class="actions" style="margin-top:14px">
-            <div class="action-row">
-              <button class="btn primary" data-log="DONE">${completedToday ? "Update done" : "Done"}</button>
-              <button class="btn warning" data-log="MINIMUM">${completedToday ? "Update minimum" : "Minimum"}</button>
-            </div>
+            <button class="btn primary" data-log="DONE">${completedToday ? "Update entry" : "Done"}</button>
             <button class="btn danger" data-log="SKIPPED">Skip — no debt</button>
           </div>
         </div>
@@ -964,7 +945,7 @@ function renderNotifications() {
         <div class="card">
           <h2>What you’ll receive</h2>
           ${renderList(["Monday/Friday morning karate prep reminders", "Monday/Friday post-karate conditioning and strength check reminders", "Between-karate recovery, soreness, optional work, and Sunday weight-review nudges", "A tap opens Karate Cockpit directly at the public app URL"])}
-          <button class="btn ghost" style="margin-top:14px" data-route="plan">Back to plan</button>
+          <button class="btn ghost" style="margin-top:14px" data-route="progress">Back to progress</button>
         </div>
       </section>
     </main>`;
@@ -1123,37 +1104,8 @@ function renderLogRow(log) {
   </div>`;
 }
 
-function renderPlan() {
-  return `
-    <main class="screen" data-screen="plan">
-      ${renderTopbar("Plan", `${currentPhase()} · Week ${weekNumber()}`)}
-      <section class="card accent-card">
-        <h2>Current focus</h2>
-        <p class="subtle">Week 1–4: make training automatic, clean mechanics, add tiny volume only if joints are quiet, then deload and assess.</p>
-      </section>
-      <section class="card notify-entry" style="margin-top:16px">
-        <div>
-          <p class="eyebrow">iPhone native push</p>
-          <h2>Reminder setup</h2>
-          <p class="subtle">Optional one-time Home Screen PWA setup. Exports a private device subscription for GitHub Actions — never stores it in public app files.</p>
-        </div>
-        <button class="btn primary" data-route="notifications">Set up notifications</button>
-      </section>
-      <section class="card" style="margin-top:16px">
-        <h2>Weekly rhythm</h2>
-        <div class="week-grid">
-          ${Object.values(CARDS).slice(1).concat(CARDS[0]).map(card => `<div class="day-row"><div class="day-badge">${card.shortDay}</div><div><strong>${card.label}</strong><p>${card.time} · Min: ${card.minimum[0]}</p></div></div>`).join("")}
-        </div>
-      </section>
-      <section class="card" style="margin-top:16px">
-        <h2>Pain rules</h2>
-        ${renderList(["0–2/10: continue", "3/10: reduce speed/load/volume 50%", "4+/10: stop that category today", "Morning-after tendon stiffness: no plyos/sprints", "Knee swelling: no jumping, hard pivots, or sparring intensity", "Lower-back pain with rotation: reduce kicking volume, core/stability only"])}
-      </section>
-    </main>`;
-}
-
 function renderNav() {
-  const items = [["today", "Today"], ["progress", "Progress"], ["plan", "Plan"]];
+  const items = [["today", "Today"], ["progress", "Progress"]];
   return `<nav class="bottom-nav" aria-label="Primary">${items.map(([key, label]) => {
     const active = route === key || (["insights", "notifications"].includes(route) && key === "progress");
     return `<button class="nav-btn" data-route="${key}" aria-current="${active ? "page" : "false"}">${label}</button>`;
@@ -1241,7 +1193,6 @@ function bindCommonEvents() {
     saveState();
   });
   document.querySelectorAll("[data-log]").forEach(button => button.addEventListener("click", () => logSession(button.dataset.log)));
-  document.querySelectorAll("[data-start]").forEach(button => button.addEventListener("click", () => openSession(button.dataset.start)));
   document.querySelectorAll("[data-export-format]").forEach(button => button.addEventListener("click", () => downloadTrainingData(button.dataset.exportFormat)));
   document.querySelector("[data-push-subscribe]")?.addEventListener("click", setupPushNotifications);
   document.querySelector("[data-push-copy]")?.addEventListener("click", copyPushSetupCode);
@@ -1295,130 +1246,6 @@ function logSession(type) {
   saveState();
   render();
   showToast(type === "SKIPPED" ? "Skipped. No debt. Continue next card." : `${type} logged locally.`);
-}
-
-function openSession(kind) {
-  const card = currentCard();
-  if (card.key === "sunday-review") {
-    openReviewSession();
-    return;
-  }
-  const items = kind === "minimum" ? card.minimum : card.full;
-  timerSeconds = kind === "minimum" ? Math.min(10 * 60, estimateSeconds(card, kind)) : estimateSeconds(card, kind);
-  const overlay = document.createElement("div");
-  overlay.className = "session-overlay";
-  overlay.innerHTML = `
-    <section class="session-panel" role="dialog" aria-modal="true" aria-label="Session mode">
-      <div class="topbar" style="margin-bottom:8px">
-        <div><p class="eyebrow">Session Mode</p><h2>${kind === "minimum" ? "Minimum" : "Full"}: ${card.label}</h2></div>
-        <button class="btn ghost small" data-close-session>Close</button>
-      </div>
-      <p class="subtle">Pain abort: ${card.painRule}</p>
-      <div class="timer" data-timer>${formatSeconds(timerSeconds)}</div>
-      <div class="stack">
-        ${items.map(item => renderSessionItem(item, card)).join("")}
-      </div>
-      ${renderSkipReasonInputs("session-")}
-      <div class="actions" style="margin-top:16px">
-        <div class="action-row">
-          <button class="btn primary" data-session-log="${kind === "minimum" ? "MINIMUM" : "DONE"}">${kind === "minimum" ? "Log minimum" : "Done"}</button>
-          <button class="btn warning" data-session-log="MINIMUM">Minimum</button>
-        </div>
-        <button class="btn danger" data-session-log="SKIPPED">Stop / Skip</button>
-      </div>
-    </section>`;
-  document.body.appendChild(overlay);
-  overlay.querySelector("[data-close-session]").addEventListener("click", closeSession);
-  overlay.querySelector("[data-skip-reason-category]")?.addEventListener("input", event => { state.skipReason = { ...(state.skipReason || {}), category: event.target.value }; saveState(); });
-  overlay.querySelector("[data-skip-reason-category]")?.addEventListener("change", event => { state.skipReason = { ...(state.skipReason || {}), category: event.target.value }; saveState(); });
-  overlay.querySelector("[data-skip-reason-text]")?.addEventListener("input", event => { state.skipReason = { ...(state.skipReason || {}), text: event.target.value.trim() }; saveState(); });
-  overlay.querySelectorAll("[data-session-log]").forEach(button => button.addEventListener("click", () => {
-    closeSession();
-    logSession(button.dataset.sessionLog);
-  }));
-  overlay.querySelectorAll(".check-item input").forEach(box => box.addEventListener("change", () => box.closest(".check-item").classList.toggle("done", box.checked)));
-  startTimer(overlay.querySelector("[data-timer]"));
-}
-
-function openReviewSession() {
-  const card = currentCard();
-  const existing = todayLog(card);
-  const overlay = document.createElement("div");
-  overlay.className = "session-overlay";
-  overlay.innerHTML = `
-    <section class="session-panel" role="dialog" aria-modal="true" aria-label="Sunday review">
-      <div class="topbar" style="margin-bottom:8px">
-        <div><p class="eyebrow">Sunday Review</p><h2>Four signals. No workout.</h2></div>
-        <button class="btn ghost small" data-close-session>Close</button>
-      </div>
-      <p class="subtle">Do this: weigh or enter latest kg, set pain sliders, set energy, write one best kumite feeling, save. No workout.</p>
-      <div class="card compact" style="margin-top:14px">
-        ${renderReviewInputs(card, "session-")}
-      </div>
-      ${existing ? `<div class="today-status ${existing.type.toLowerCase()}" style="margin-top:14px"><strong>Already logged today</strong><span>${formatLogLine(existing)}</span></div>` : ""}
-      <div class="actions" style="margin-top:16px">
-        <button class="btn primary" data-session-log="DONE">${existing ? "Update review" : "Save review"}</button>
-        <button class="btn warning" data-session-log="MINIMUM">${existing ? "Update minimum" : "Minimum"}</button>
-        <button class="btn danger" data-session-log="SKIPPED">${existing ? "Mark skipped instead" : "Skip — no debt"}</button>
-      </div>
-    </section>`;
-  document.body.appendChild(overlay);
-  overlay.querySelector("[data-close-session]").addEventListener("click", closeSession);
-  overlay.querySelectorAll("[data-pain]").forEach(input => input.addEventListener("input", () => {
-    const key = input.dataset.pain;
-    state.pain[key] = Number(input.value);
-    const value = overlay.querySelector(`#session-value-${key}`);
-    if (value) value.textContent = input.value;
-    saveState();
-  }));
-  overlay.querySelector("[data-weight]")?.addEventListener("input", event => { state.weight = event.target.value.trim(); saveState(); });
-  overlay.querySelector("[data-energy]")?.addEventListener("input", event => {
-    state.energy = Number(event.target.value);
-    const value = overlay.querySelector("#session-value-energy");
-    if (value) value.textContent = event.target.value;
-    saveState();
-  });
-  overlay.querySelector("[data-note]")?.addEventListener("input", event => { state.note = event.target.value.trim(); saveState(); });
-  overlay.querySelector("[data-skip-reason-category]")?.addEventListener("input", event => { state.skipReason = { ...(state.skipReason || {}), category: event.target.value }; saveState(); });
-  overlay.querySelector("[data-skip-reason-category]")?.addEventListener("change", event => { state.skipReason = { ...(state.skipReason || {}), category: event.target.value }; saveState(); });
-  overlay.querySelector("[data-skip-reason-text]")?.addEventListener("input", event => { state.skipReason = { ...(state.skipReason || {}), text: event.target.value.trim() }; saveState(); });
-  overlay.querySelectorAll("[data-session-log]").forEach(button => button.addEventListener("click", () => {
-    closeSession();
-    logSession(button.dataset.sessionLog);
-  }));
-}
-
-function closeSession() {
-  clearInterval(sessionTimer);
-  document.querySelector(".session-overlay")?.remove();
-}
-
-function estimateSeconds(card, kind) {
-  if (kind === "minimum") {
-    if (card.key.includes("footwork") || card.key.includes("karate")) return 6 * 60;
-    if (card.key.includes("strength") || card.key.includes("recovery")) return 10 * 60;
-    return 3 * 60;
-  }
-  if (card.key.includes("strength")) return 30 * 60;
-  if (card.key.includes("footwork")) return 25 * 60;
-  if (card.key.includes("recovery")) return 35 * 60;
-  if (card.key.includes("karate")) return 6 * 60;
-  return 3 * 60;
-}
-
-function startTimer(node) {
-  clearInterval(sessionTimer);
-  sessionTimer = setInterval(() => {
-    timerSeconds = Math.max(0, timerSeconds - 1);
-    node.textContent = formatSeconds(timerSeconds);
-    if (timerSeconds === 0) clearInterval(sessionTimer);
-  }, 1000);
-}
-
-function formatSeconds(seconds) {
-  const min = Math.floor(seconds / 60).toString().padStart(2, "0");
-  const sec = Math.floor(seconds % 60).toString().padStart(2, "0");
-  return `${min}:${sec}`;
 }
 
 function formatPain(pain) {
