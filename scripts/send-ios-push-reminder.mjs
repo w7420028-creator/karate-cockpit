@@ -9,11 +9,11 @@ const REMINDERS = [
   { key: 'mon-prep', weekday: 1, time: '08:00', title: 'Karate today', body: '6 min joint prep before class. After training, log conditioning and strength effort.' },
   { key: 'mon-post', weekday: 1, time: '21:30', title: 'Post-karate check', body: 'Log conditioning, strength effort, and any overload note. No extra training tonight.' },
   { key: 'tue-recovery', weekday: 2, time: '07:30', title: 'Recovery check', body: 'Check muscle soreness and stiffness first. Then choose normal, reduced, mobility, or pause.' },
-  { key: 'wed-strength', weekday: 3, time: '20:00', title: 'Strength if recovered', body: 'Check soreness before strength. Green = tendon work, yellow = reduced, red = mobility or pause.' },
-  { key: 'thu-footwork', weekday: 4, time: '20:30', title: 'Footwork if legs are ready', body: 'Check soreness before footwork. Keep it light if calves, hips, or knees are still loaded.' },
+  { key: 'wed-recovery', weekday: 3, time: '20:00', title: 'Recovery check', body: 'Check soreness and stiffness first. Choose normal, reduced, mobility, or pause from the recovery signal.' },
+  { key: 'thu-recovery', weekday: 4, time: '20:30', title: 'Recovery check', body: 'Check soreness and stiffness. Keep the day light if calves, hips, or knees are still loaded.' },
   { key: 'fri-prep', weekday: 5, time: '08:00', title: 'Karate today', body: '6 min joint prep before class. Later: post-karate conditioning and strength check.' },
   { key: 'fri-post', weekday: 5, time: '21:30', title: 'Post-karate check', body: 'Log conditioning, strength effort, and where the body feels overloaded. Weekend adapts from this.' },
-  { key: 'sat-optional', weekday: 6, time: '09:30', title: 'Recovery first', body: 'Check soreness and sleep before optional work. If not green, family walk or mobility is enough.' },
+  { key: 'sat-recovery', weekday: 6, time: '09:30', title: 'Recovery first', body: 'Check soreness, stiffness, sleep, and weight before deciding what the day can handle.' },
   { key: 'sun-review', weekday: 0, time: '20:30', title: 'Sunday review', body: 'Keep weight tracking: enter weight, review recovery, and set the next week calmly.' }
 ];
 
@@ -57,7 +57,10 @@ function parseSubscriptionSecret(value) {
     parsed = JSON.parse(decoded);
   }
   const entries = Array.isArray(parsed) ? parsed : [parsed];
-  return entries.map(entry => entry.subscription || entry).filter(entry => entry?.endpoint && entry?.keys?.p256dh && entry?.keys?.auth);
+  return entries
+    .filter(entry => entry?.app === 'karate-cockpit' && entry?.appUrl === APP_URL && entry?.subscription)
+    .map(entry => entry.subscription)
+    .filter(entry => entry?.endpoint && entry?.keys?.p256dh && entry?.keys?.auth);
 }
 
 async function main() {

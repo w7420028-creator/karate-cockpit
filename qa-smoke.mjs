@@ -47,13 +47,16 @@ vm.runInContext(source, context);
 for (let day = 0; day <= 6; day++) {
   if (!context.CARDS?.[day]) throw new Error(`card ${day} missing`);
   const card = context.CARDS[day];
-  for (const key of ['key', 'shortDay', 'label', 'command', 'time', 'full', 'minimum', 'painRule', 'reason']) {
+  for (const key of ['key', 'shortDay', 'label', 'command', 'time', 'reason']) {
     if (!card[key]) throw new Error(`card ${day} missing ${key}`);
   }
 }
 const sundayHtml = context.renderReviewInputs(context.CARDS[0]);
-for (const token of ['id="weight"', 'id="energy"', 'data-pain="knees"', 'Best kumite feeling', 'data-skip-reason-category', 'value="holiday"']) {
+for (const token of ['id="weight"', 'data-sleep-hours', 'Weekly review note', 'data-skip-reason-category', 'value="holiday"']) {
   if (!sundayHtml.includes(token)) throw new Error(`Sunday input missing ${token}`);
+}
+for (const token of ['id="energy"', 'data-pain="knees"', 'Best kumite feeling']) {
+  if (sundayHtml.includes(token)) throw new Error(`Sunday input should not expose old token ${token}`);
 }
 const mondayHtml = context.renderReviewInputs(context.CARDS[1]);
 for (const token of ['Post-karate check', 'id="load-cardio"', 'Conditioning / cardio effort', 'Strength effort', 'data-sleep-hours']) {
@@ -83,23 +86,14 @@ for (const token of ['Visual cockpit', 'data-chart="weight-trend"', 'data-chart=
   if (!insights.includes(token)) throw new Error(`insights missing ${token}`);
 }
 if (context.metricPoints(context.state.logs, log => log.trainingLoad?.cardio).length !== 1) throw new Error('cardio chart points missing');
-const illustratedList = context.renderList(context.CARDS[3].full, context.CARDS[3]);
-for (const token of ['diagram-shell', '<svg class="exercise-diagram" viewBox="0 0 64 64"', 'Goblet squat', 'Romanian deadlift', 'demo-link', 'Watch Goblet squat', 'youtube.com/watch?v=Xjo_fY9Hl9w']) {
-  if (!illustratedList.includes(token)) throw new Error(`exercise illustration/demo missing ${token}`);
-}
-if (context.diagramKeyForItem('Kizami-zuki entry, no power', context.CARDS[4]) !== 'punch') throw new Error('karate footwork icon classification failed');
-if (context.diagramKeyForItem('Slow calf raises', context.CARDS[1]) !== 'calf') throw new Error('calf icon classification failed');
-if (context.diagramKeyForItem('6-min joint prep only', context.CARDS[1]) !== 'mobility') throw new Error('joint prep icon classification failed');
-if (context.demoKeyForItem('Retreat + gyaku-zuki counter', context.CARDS[4]) !== 'counter') throw new Error('karate counter demo classification failed');
-if (context.demoKeyForItem('If class is impossible: no make-up workout', context.CARDS[1]) !== '') throw new Error('non-exercise item should not have a demo link');
 const notificationSetup = context.renderNotifications();
-for (const token of ['One-time iPhone push setup', 'IOS_PUSH_SUBSCRIPTION', 'No private VAPID key or GitHub token', 'Copy setup code', 'post-karate conditioning and strength', 'Back to progress']) {
+for (const token of ['One-time iPhone push setup', 'IOS_PUSH_SUBSCRIPTION', 'No private VAPID key or GitHub token', 'Copy setup code', 'post-karate conditioning and strength', 'soreness, stiffness', 'Back to progress']) {
   if (!notificationSetup.includes(token)) throw new Error(`notification setup missing ${token}`);
 }
 if (context.urlBase64ToUint8Array(context.VAPID_PUBLIC_KEY).length !== 65) throw new Error('VAPID public key should decode to a P-256 public key');
 
 const swSource = fs.readFileSync('sw.js', 'utf8');
-for (const token of ['karate-cockpit-v16', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
+for (const token of ['karate-cockpit-v17', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
   if (!swSource.includes(token)) throw new Error(`service worker push coverage missing ${token}`);
 }
 context.state.logs = [context.state.logs[0]];

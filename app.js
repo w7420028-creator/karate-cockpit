@@ -1,111 +1,63 @@
-const PLAN_START = new Date("2026-05-25T00:00:00");
 const STORAGE_KEY = "karate-cockpit-v1";
 const APP_URL = "https://w7420028-creator.github.io/karate-cockpit/";
 const VAPID_PUBLIC_KEY = "BH2EnekLiapo_ZR4OcV2GxrTgGSzrlhKnRuYh_-cmfYWQCMBHomzrQynEAWwHGrCEwZvwh2ANmpI21mw4OA0Bqs";
-
-const JOINT_PREP = [
-  "Ankle knee-to-wall rocks — 10/side",
-  "Slow calf raises — 10 reps",
-  "Spanish squat hold or wall sit — 30 sec",
-  "90/90 hip switches — 8/side",
-  "Hip flexor/couch stretch — 30 sec/side",
-  "Bird dog — 6/side"
-];
 
 const CARDS = {
   0: {
     key: "sunday-review",
     shortDay: "SUN",
-    label: "Sunday Review",
-    command: "Three-minute review. No workout.",
+    label: "Weight + Review",
+    command: "Weight and weekly recovery review.",
     time: "3 min",
-    full: ["0:00 — Weigh yourself or enter latest bodyweight", "0:30 — Set pain sliders: knees, Achilles, hips, lower back", "1:15 — Set energy 0–10", "1:45 — Write one best kumite feeling", "2:30 — Save review. Done."],
-    minimum: ["Enter pain + energy", "Write one word for best feeling", "Save. Weight can wait."],
-    painRule: "This decides next week: pain ≥4 = protect tissue, energy ≤4 = reduce extra work, good numbers = progress one variable only.",
-    reason: "Sunday is the coaching control loop: check bodyweight trend, tissue status, recovery, and one positive technical signal."
+    reason: "Log bodyweight, quick state, and one useful note for the next week."
   },
   1: {
     key: "monday-karate",
     shortDay: "MON",
-    label: "Karate + Joint Prep",
-    command: "Prime joints. Then karate.",
-    time: "6 min + class",
-    full: [...JOINT_PREP, "Karate class — keep speed technical, ego off"],
-    minimum: ["6-min joint prep only", "If class is impossible: no make-up workout"],
-    painRule: "Knee swelling = no jumping or hard pivots. Achilles stiffness >3 = no explosive entries.",
-    reason: "Prep buys tissue tolerance before pivots, bounces, and kumite rhythm."
+    label: "Post-karate check",
+    command: "After training: load check.",
+    time: "30 sec",
+    reason: "Log conditioning/cardio effort, strength effort, and any overload note."
   },
   2: {
     key: "tuesday-recovery",
     shortDay: "TUE",
-    label: "Recovery Engine",
-    command: "Build engine. Keep it easy.",
-    time: "30–45 min",
-    full: ["Zone 2 cardio — brisk walk, bike, elliptical, or rower", "Mobility — 8–10 min", "Keep breathing nasal/conversational"],
-    minimum: ["10-min walk after dinner", "1 min couch stretch/side", "15 calf raises"],
-    painRule: "Pain 3 = cut pace and duration 50%. Pain 4+ = walk/mobility only.",
-    reason: "Aerobic base improves repeat attacks without adding joint cost."
+    label: "Recovery check",
+    command: "Check soreness before adding anything.",
+    time: "30 sec",
+    reason: "Track muscle soreness, stiffness, and today’s sensible recovery choice."
   },
   3: {
     key: "wednesday-strength",
     shortDay: "WED",
-    label: "Strength / Tendon A",
-    command: "Durability before danger.",
-    time: "25–35 min",
-    full: [
-      "Warm-up — 2 min easy movement + ankle rocks + hip switches",
-      "Goblet squat — 3 × 8, RPE 6–7",
-      "Romanian deadlift — 3 × 8, controlled",
-      "Split squat — 2–3 × 8/side",
-      "Push-up — 3 comfortable sets, stop 2 reps before failure",
-      "Chest-supported row or band row — 3 × 10",
-      "Side plank — 2 × 30 sec/side",
-      "Standing calf raise slow — 3 × 12",
-      "Tibialis raise — 2 × 15–20"
-    ],
-    minimum: ["Split squat — 2 × 8/side", "Slow calf raise — 2 × 12", "Side plank — 2 × 30 sec/side", "Bird dog — 2 × 6/side"],
-    painRule: "Pain 3 = reduce load/volume 50%. Pain 4+ = stop that pattern today.",
-    reason: "Leg, hip, calf, and trunk capacity make kumite acceleration safer."
+    label: "Recovery check",
+    command: "Muscle state decides the day.",
+    time: "30 sec",
+    reason: "Track soreness/stiffness first; only train normally if recovery is green."
   },
   4: {
     key: "thursday-footwork",
     shortDay: "THU",
-    label: "Footwork + Mobility",
-    command: "Quiet feet. Clean timing.",
-    time: "20–30 min",
-    full: [
-      "Kamae bounce relaxed — 4 × 45 sec",
-      "Step-in / step-out — 5 × 8",
-      "Kizami-zuki entry, no power — 5 × 5/side",
-      "Retreat + gyaku-zuki counter — 5 × 5/side",
-      "Attack → angle exit — 5 × 4/side",
-      "Shadow kumite — 3 × 90 sec at 50–60%"
-    ],
-    minimum: ["2 min relaxed kamae bounce", "2 min kizami entry", "2 min retreat-counter"],
-    painRule: "No maximal acceleration in Phase 1. Morning tendon stiffness = no plyos/sprints.",
-    reason: "WKF danger returns through distance, entry timing, and clean exits first."
+    label: "Recovery check",
+    command: "Leg state first.",
+    time: "30 sec",
+    reason: "Track soreness/stiffness before any light movement."
   },
   5: {
     key: "friday-karate",
     shortDay: "FRI",
-    label: "Karate + Joint Prep",
-    command: "Prepare. Train. Check pain.",
-    time: "6 min + class",
-    full: [...JOINT_PREP, "Karate class — sparring intensity capped by joint state"],
-    minimum: ["6-min joint prep only", "If exhausted: attend lightly or skip without debt"],
-    painRule: "Lower-back pain with rotation = reduce kicking, core/stability only. Achilles >3 = no explosive entries.",
-    reason: "Second karate day consolidates timing without turning the week into a recovery trap."
+    label: "Post-karate check",
+    command: "After training: load check.",
+    time: "30 sec",
+    reason: "Log conditioning/cardio effort, strength effort, and where the body feels overloaded."
   },
   6: {
     key: "saturday-optional",
     shortDay: "SAT",
-    label: "Optional Stable-Week Work",
-    command: "Optional only if stable.",
-    time: "25–40 min",
-    full: ["30–45 min Zone 2 OR easy strength technique", "Stop while you feel fresh"],
-    minimum: ["Family walk"],
-    painRule: "Skip if Achilles stiffness >3, knee swelling, bad sleep 2+ nights, or Friday karate was hard.",
-    reason: "Saturday adds base only when the week is quiet. No heroic intensity."
+    label: "Recovery check",
+    command: "Recovery first.",
+    time: "30 sec",
+    reason: "Track soreness, stiffness, sleep, and weight before deciding how much the day can handle."
   }
 };
 
@@ -234,20 +186,6 @@ function dayKey(date = todayDate()) {
   return date.getDay();
 }
 
-function weekNumber(date = todayDate()) {
-  const start = new Date(PLAN_START);
-  start.setHours(0, 0, 0, 0);
-  const current = new Date(date);
-  current.setHours(0, 0, 0, 0);
-  const diff = current.getTime() - start.getTime();
-  return Math.max(1, Math.floor(diff / (7 * 24 * 60 * 60 * 1000)) + 1);
-}
-
-function currentPhase(week = weekNumber()) {
-  if (week <= 12) return "Phase 1 · Reactivation";
-  return "Post Phase 1 · Reassess";
-}
-
 function currentCard() {
   return CARDS[dayKey()];
 }
@@ -261,10 +199,7 @@ function readinessClass(value = state.readiness) {
 }
 
 function suggestedReadiness() {
-  const pain = maxPain();
-  if (state.readiness === "RED" || pain >= 4) return "RED";
-  if (state.readiness === "YELLOW" || pain >= 3) return "YELLOW";
-  return "GREEN";
+  return ["GREEN", "YELLOW", "RED"].includes(state.readiness) ? state.readiness : "GREEN";
 }
 
 function isKarateCheckin(card = currentCard()) {
@@ -316,14 +251,13 @@ function renderTopbar(title, detail = "") {
 
 function renderToday() {
   const card = currentCard();
-  const week = weekNumber();
   const lastLog = state.logs[0];
   const todaysLog = todayLog(card);
   const completedToday = isCompletedLog(todaysLog);
   const skippedToday = todaysLog?.type === "SKIPPED";
   return `
     <main class="screen" data-screen="today">
-      ${renderTopbar("Today", `${currentPhase(week)} · Week ${week}`)}
+      ${renderTopbar("Today", "Local check-in tracking")}
       <section class="hero">
         <div class="hero-meta">
           <span class="pill accent">${card.shortDay}</span>
@@ -373,15 +307,11 @@ function renderSundayReviewInputs(card = currentCard(), prefix = "") {
     <div class="input-grid">
       <label class="field-label" for="${prefix}weight">Weight <span>${isSunday ? "current bodyweight in kg" : "optional"}</span></label>
       <input id="${prefix}weight" data-weight inputmode="decimal" autocomplete="off" placeholder="94.0" value="${escapeHtml(state.weight || "")}" />
+      <label class="field-label" for="${prefix}sleep-hours">Sleep hours <span>optional AutoSleep / Health</span></label>
+      <input id="${prefix}sleep-hours" data-sleep-hours inputmode="decimal" autocomplete="off" placeholder="7.4" value="${escapeHtml(state.sleepHours || "")}" />
     </div>
-    ${renderPainSliders(prefix)}
-    <div class="slider-row energy-row">
-      <label for="${prefix}energy">Energy</label>
-      <span class="value" id="${prefix}value-energy">${state.energy ?? 7}</span>
-      <input id="${prefix}energy" data-energy type="range" min="0" max="10" step="1" value="${state.energy ?? 7}" />
-    </div>
-    <label class="eyebrow" for="${prefix}note">${isSunday ? "Best kumite feeling" : "What felt sharp?"}</label>
-    <textarea id="${prefix}note" data-note maxlength="140" placeholder="e.g. kizami timing">${escapeHtml(state.note || "")}</textarea>
+    <label class="eyebrow" for="${prefix}note">Weekly review note</label>
+    <textarea id="${prefix}note" data-note maxlength="140" placeholder="e.g. recovery good, calves still loaded, next week normal">${escapeHtml(state.note || "")}</textarea>
     ${renderSkipReasonInputs(prefix)}`;
 }
 
@@ -770,7 +700,7 @@ function renderConsistencyChart(logs) {
   return `
     <article class="chart-card consistency" data-chart="consistency">
       <div class="chart-head">
-        <div><h2>Consistency</h2><p class="subtle">Last 14 days: done/minimum beats perfect.</p></div>
+        <div><h2>Consistency</h2><p class="subtle">Last 14 days: logged check-ins beat perfect.</p></div>
         <div class="chart-stat"><strong>${done}/14</strong><span>${streak ? `${streak}d streak` : "start today"}</span></div>
       </div>
       <div class="consistency-grid" aria-label="14 day consistency chart">
@@ -801,7 +731,7 @@ function renderDataExportCard(logs = state.logs) {
   return `
     <section class="card export-card" style="margin-top:16px">
       <h2>Data export</h2>
-      <p class="subtle">Download all local training logs for later analysis. JSON preserves the raw log objects; CSV flattens weight, sleep, karate load, recovery, pain, and skip-reason fields.</p>
+      <p class="subtle">Download all local training logs for later analysis. JSON preserves the raw log objects; CSV flattens weight, sleep, karate load, recovery, legacy pain/energy, and skip-reason fields.</p>
       <div class="readiness-strip export-stats" style="margin-top:12px">
         <div class="metric"><strong>${logs.length}</strong><span>Total logs</span></div>
         <div class="metric"><strong>${logs.filter(log => log.type === "SKIPPED").length}</strong><span>Skipped</span></div>
@@ -1001,7 +931,7 @@ function renderNotifications() {
 
         <div class="card">
           <h2>What you’ll receive</h2>
-          ${renderList(["Monday/Friday morning karate prep reminders", "Monday/Friday post-karate conditioning and strength check reminders", "Between-karate recovery, soreness, optional work, and Sunday weight-review nudges", "A tap opens Karate Cockpit directly at the public app URL"])}
+          ${renderList(["Monday/Friday morning karate prep reminders", "Monday/Friday post-karate conditioning and strength check reminders", "Between-karate recovery, soreness, stiffness, and Sunday weight-review nudges", "A tap opens Karate Cockpit directly at the public app URL"])}
           <button class="btn ghost" style="margin-top:14px" data-route="progress">Back to progress</button>
         </div>
       </section>
@@ -1315,7 +1245,7 @@ function formatPain(pain) {
 }
 
 function formatMetricLog(log) {
-  const parts = [formatPain(log.pain)];
+  const parts = [];
   if (log.weight) parts.push(`${log.weight} kg`);
   if (log.sleepHours) parts.push(`sleep ${log.sleepHours}h`);
   if (log.trainingLoad) parts.push(`cardio ${log.trainingLoad.cardio}/10`, `strength ${log.trainingLoad.strength}/10`);
@@ -1323,11 +1253,12 @@ function formatMetricLog(log) {
     if (log.recovery.areas?.length) parts.push(log.recovery.areas.join(", "));
     parts.push(`sore ${log.recovery.soreness}/10`, `stiff ${log.recovery.stiffness}/10`, log.recovery.recommendation);
   }
-  if (Number.isFinite(Number(log.energy))) parts.push(`energy ${log.energy}`);
+  if (!log.trainingLoad && !log.recovery && log.pain) parts.push(formatPain(log.pain));
+  if (!log.trainingLoad && !log.recovery && Number.isFinite(Number(log.energy))) parts.push(`energy ${log.energy}`);
   const reason = formatSkipReason(log);
   if (reason) parts.push(`skip: ${reason}`);
   if (log.note) parts.push(log.note);
-  return parts.join(" · ");
+  return parts.length ? parts.join(" · ") : "No metric detail";
 }
 
 function formatLogLine(log) {

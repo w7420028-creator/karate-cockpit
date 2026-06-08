@@ -37,7 +37,7 @@ Deployment:
 ## V1 behavior
 
 - Opens directly to Today.
-- Daily check-in mode is derived from the weekly rhythm in `../README.md`.
+- Daily check-in mode is derived from the lightweight karate/recovery rhythm.
 - Logs `DONE` or `SKIPPED`, readiness, and the right check-in for the day to `localStorage`. Older `MINIMUM` logs are still readable/exportable for history, but the active UI no longer offers session/program tracking.
 - Monday/Friday use a post-karate check for conditioning effort, strength effort, and overload notes.
 - Days between karate use a recovery check for muscle-soreness areas, soreness intensity, stiffness, and recommendation.
@@ -92,7 +92,7 @@ Log entry shape:
 }
 ```
 
-Analytics are derived from these logs: planned-vs-actual can be reconstructed from `date` + `card` + `type`, weight from `weight`, pain from per-area pain values, energy from `energy`, completion mix from `DONE`/`SKIPPED`, and skip classification from `skipReason`. Existing historical `MINIMUM` logs remain counted/exported. Data is durable for the installed browser profile, including offline use. The Progress screen exports the full uncapped log history as raw JSON or flattened CSV for later analytics. There is no backend sync yet.
+Analytics are derived from these logs: weight from `weight`, karate load from `trainingLoad`, recovery from `recovery`, readiness from `readiness`, completion mix from `DONE`/`SKIPPED`, and skip classification from `skipReason`. Legacy pain/energy fields remain in storage/export so older history is not lost, but they are not active Progress metrics. Existing historical `MINIMUM` logs remain counted/exported. Data is durable for the installed browser profile, including offline use. The Progress screen exports the full uncapped log history as raw JSON or flattened CSV for later analytics. There is no backend sync yet.
 
 ## iOS Web Push reminders
 
@@ -104,7 +104,7 @@ Current reminder behavior:
 
 - Monday/Friday morning: karate prep and joint-prep reminder.
 - Monday/Friday evening: post-karate conditioning effort, strength effort, and overload-note reminder.
-- Tuesday/Wednesday/Thursday/Saturday: recovery/soreness-first reminder before any optional work.
+- Tuesday/Wednesday/Thursday/Saturday: recovery/soreness/stiffness-first reminder.
 - Sunday: weight tracking and weekly review reminder.
 
 Frontend public VAPID key committed in `app.js`:

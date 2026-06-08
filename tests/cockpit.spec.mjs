@@ -30,15 +30,15 @@ test.describe('Karate Cockpit V1', () => {
     await page.goto('/');
 
     await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible();
-    await expect(page.getByText('Three-minute review. No workout.')).toBeVisible();
+    await expect(page.getByText('Weight and weekly recovery review.')).toBeVisible();
     await expect(page.locator('#weight')).toBeVisible();
-    await expect(page.locator('#energy')).toBeVisible();
-    await expect(page.locator('#pain-knees')).toBeVisible();
-    await expect(page.getByText('Best kumite feeling', { exact: true })).toBeVisible();
+    await expect(page.locator('#sleep-hours')).toBeVisible();
+    await expect(page.locator('#energy')).toHaveCount(0);
+    await expect(page.locator('#pain-knees')).toHaveCount(0);
+    await expect(page.getByText('Weekly review note', { exact: true })).toBeVisible();
 
     await page.locator('#weight').fill('94,0');
-    await page.locator('#pain-achilles').fill('3');
-    await page.locator('#energy').fill('6');
+    await page.locator('#sleep-hours').fill('7.2');
     await page.locator('#note').fill('kizami timing');
     await page.getByRole('button', { name: /^Done$/ }).tap();
 
@@ -55,6 +55,7 @@ test.describe('Karate Cockpit V1', () => {
     const state = await page.evaluate(() => JSON.parse(localStorage.getItem('karate-cockpit-v1')));
     expect(state.logs).toHaveLength(1);
     expect(state.logs[0].weight).toBe('93.8');
+    expect(state.logs[0].sleepHours).toBe('7.2');
   });
 
   test('Monday karate check-in logs conditioning and strength effort', async ({ page }) => {
@@ -63,7 +64,7 @@ test.describe('Karate Cockpit V1', () => {
 
     await expect(page.getByRole('heading', { name: 'Post-karate check' })).toBeVisible();
     await expect(page.getByText('Conditioning / cardio effort')).toBeVisible();
-    await expect(page.getByText('Strength effort')).toBeVisible();
+    await expect(page.getByText('Strength effort', { exact: true })).toBeVisible();
 
     await page.locator('#load-cardio').fill('8');
     await page.locator('#load-strength').fill('6');
@@ -136,6 +137,8 @@ test.describe('Karate Cockpit V1', () => {
     await expect(page.getByText('Pain trend')).toHaveCount(0);
     await expect(page.getByText('Avg energy')).toHaveCount(0);
     await expect(page.locator('.timeline .log-row').first()).toContainText('loose legs');
+    await expect(page.locator('.timeline .log-row').first()).not.toContainText('knees');
+    await expect(page.locator('.timeline .log-row').first()).not.toContainText('energy');
 
     await page.getByRole('button', { name: 'Open charts' }).tap();
     await expect(page.getByRole('heading', { name: 'Insights' })).toBeVisible();
@@ -275,6 +278,9 @@ test.describe('Karate Cockpit V1', () => {
     await page.goto('/');
 
     await expect(page.getByRole('heading', { name: 'Recovery check' })).toBeVisible();
+    await expect(page.getByText('Strength / Tendon A')).toHaveCount(0);
+    await expect(page.getByText('Footwork + Mobility')).toHaveCount(0);
+    await expect(page.getByText('Optional Stable-Week Work')).toHaveCount(0);
     await expect(page.getByText('Full session')).toHaveCount(0);
     await expect(page.getByText('Minimum version')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Start full' })).toHaveCount(0);
