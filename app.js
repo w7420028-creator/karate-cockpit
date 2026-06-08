@@ -523,6 +523,46 @@ function averageEnergy(logs, limit = 7) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+function averageMetric(logs, selector, limit = 7) {
+  const values = logs
+    .map(selector)
+    .map(value => Number(value))
+    .filter(value => Number.isFinite(value) && value >= 0)
+    .slice(0, limit);
+  if (!values.length) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function formatAverage(value) {
+  return value === null || value === undefined ? "—" : value.toFixed(1);
+}
+
+function karateLoadStats(logs, limit = 6) {
+  const sample = logs.filter(log => log.trainingLoad).slice(0, limit);
+  return {
+    count: sample.length,
+    avgCardio: averageMetric(sample, log => log.trainingLoad?.cardio, limit),
+    avgStrength: averageMetric(sample, log => log.trainingLoad?.strength, limit)
+  };
+}
+
+function recoveryStats(logs, limit = 7) {
+  const sample = logs.filter(log => log.recovery).slice(0, limit);
+  const recommendations = sample.reduce((acc, log) => {
+    const key = log.recovery?.recommendation || "normal";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, { normal: 0, reduced: 0, mobility: 0, pause: 0 });
+  const areas = [...new Set(sample.flatMap(log => log.recovery?.areas || []))].slice(0, 3);
+  return {
+    count: sample.length,
+    avgSoreness: averageMetric(sample, log => log.recovery?.soreness, limit),
+    avgStiffness: averageMetric(sample, log => log.recovery?.stiffness, limit),
+    recommendations,
+    areas
+  };
+}
+
 function readinessStats(logs, days = 14) {
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
   const sample = logs.filter(log => new Date(log.date).getTime() >= cutoff);
@@ -549,6 +589,19 @@ function coachDecision({ avgPain, avgEnergy, completed, readiness }) {
   if ((avgEnergy !== null && avgEnergy <= 4) || avgPain >= 3 || readiness.yellow >= 2) return { level: "yellow", text: "Hold or reduce. Keep karate technical and choose minimum versions." };
   if (completed >= 3 && avgPain < 3 && (avgEnergy === null || avgEnergy >= 6)) return { level: "green", text: "Stable week. Progress one variable only — never volume, speed, and intensity together." };
   return { level: "yellow", text: "Not enough signal yet. Keep the plan easy and collect clean data." };
+}
+
+function coachingDecision({ completed, readiness, load, recovery }) {
+  if (readiness.red > 0 || recovery.recommendations.pause > 0 || recovery.avgSoreness >= 7 || recovery.avgStiffness >= 7) {
+    return { level: "red", text: "Recovery signal is high. Pause hard work and let soreness/stiffness come down first." };
+  }
+  if (readiness.yellow >= 2 || recovery.avgSoreness >= 5 || recovery.avgStiffness >= 5 || load.avgCardio >= 8) {
+    return { level: "yellow", text: "Hold or reduce load. Keep karate technical until recovery trends normalize." };
+  }
+  if (completed >= 3 && load.count && recovery.count) {
+    return { level: "green", text: "Stable signals. Normal training is fine; progress only one variable at a time." };
+  }
+  return { level: "yellow", text: "Not enough signal yet. Keep logging karate load and recovery for a clean baseline." };
 }
 
 function metricPoints(logs, selector) {
@@ -748,7 +801,7 @@ function renderDataExportCard(logs = state.logs) {
   return `
     <section class="card export-card" style="margin-top:16px">
       <h2>Data export</h2>
-      <p class="subtle">Download all local training logs for later analysis. JSON preserves the raw log objects; CSV flattens pain and skip-reason fields.</p>
+      <p class="subtle">Download all local training logs for later analysis. JSON preserves the raw log objects; CSV flattens weight, sleep, karate load, recovery, pain, and skip-reason fields.</p>
       <div class="readiness-strip export-stats" style="margin-top:12px">
         <div class="metric"><strong>${logs.length}</strong><span>Total logs</span></div>
         <div class="metric"><strong>${logs.filter(log => log.type === "SKIPPED").length}</strong><span>Skipped</span></div>
@@ -867,10 +920,12 @@ function renderSessionItem(item, card = currentCard()) {
 function renderInsights() {
   const logs = state.logs;
   const weightPoints = metricPoints(logs, log => numericWeight(log.weight));
-  const painPoints = metricPoints(logs, log => log.pain ? maxPain(log.pain) : null);
-  const energyPoints = metricPoints(logs, log => Number(log.energy));
-  const avgPain = averagePain(logs, 7);
-  const avgEnergy = averageEnergy(logs, 7);
+  const cardioPoints = metricPoints(logs, log => log.trainingLoad?.cardio);
+  const strengthPoints = metricPoints(logs, log => log.trainingLoad?.strength);
+  const sorenessPoints = metricPoints(logs, log => log.recovery?.soreness);
+  const stiffnessPoints = metricPoints(logs, log => log.recovery?.stiffness);
+  const load = karateLoadStats(logs);
+  const recovery = recoveryStats(logs);
   return `
     <main class="screen" data-screen="insights">
       ${renderTopbar("Insights", "On-demand charts from local check-ins.")}
@@ -884,8 +939,10 @@ function renderInsights() {
       </section>
       <section class="chart-stack" aria-label="Coaching visualizations">
         ${renderSparkChart({ title: "Weight trend", subtitle: "Bodyweight direction, not daily noise.", points: weightPoints, unit: "kg", tone: "weight" })}
-        ${renderSparkChart({ title: "Pain trend", subtitle: `Max joint pain · 7-log avg ${avgPain.toFixed(1)}/10.`, points: painPoints, unit: "/10", tone: "pain", min: 0, max: 10 })}
-        ${renderSparkChart({ title: "Energy trend", subtitle: `Readiness energy · avg ${avgEnergy === null ? "—" : avgEnergy.toFixed(1)}/10.`, points: energyPoints, unit: "/10", tone: "energy", min: 0, max: 10 })}
+        ${renderSparkChart({ title: "Cardio load", subtitle: `Post-karate conditioning effort · avg ${formatAverage(load.avgCardio)}/10.`, points: cardioPoints, unit: "/10", tone: "pain", min: 0, max: 10 })}
+        ${renderSparkChart({ title: "Strength load", subtitle: `Post-karate strength effort · avg ${formatAverage(load.avgStrength)}/10.`, points: strengthPoints, unit: "/10", tone: "energy", min: 0, max: 10 })}
+        ${renderSparkChart({ title: "Soreness trend", subtitle: `Between-karate soreness · avg ${formatAverage(recovery.avgSoreness)}/10.`, points: sorenessPoints, unit: "/10", tone: "pain", min: 0, max: 10 })}
+        ${renderSparkChart({ title: "Stiffness trend", subtitle: `Between-karate stiffness · avg ${formatAverage(recovery.avgStiffness)}/10.`, points: stiffnessPoints, unit: "/10", tone: "energy", min: 0, max: 10 })}
         ${renderConsistencyChart(logs)}
         ${renderReadinessBars(logs)}
       </section>
@@ -1036,13 +1093,13 @@ function urlBase64ToUint8Array(base64String) {
 function renderProgress() {
   const logs = state.logs;
   const last14 = logs.filter(log => Date.now() - new Date(log.date).getTime() <= 14 * 24 * 60 * 60 * 1000);
-  const completed = last14.filter(log => ["DONE", "MINIMUM"].includes(log.type)).length;
-  const latestPain = logs[0]?.pain || state.pain;
-  const avgPain = averagePain(logs, 7);
-  const avgEnergy = averageEnergy(logs, 7);
+  const completed = last14.filter(log => log.type === "DONE").length;
   const weight = weightTrend(logs);
   const readiness = readinessStats(logs, 14);
-  const decision = coachDecision({ avgPain, avgEnergy, completed, readiness });
+  const load = karateLoadStats(logs);
+  const recovery = recoveryStats(logs);
+  const recommendationMix = `${recovery.recommendations.normal}/${recovery.recommendations.reduced}/${recovery.recommendations.mobility}/${recovery.recommendations.pause}`;
+  const decision = coachingDecision({ completed, readiness, load, recovery });
   return `
     <main class="screen" data-screen="progress">
       ${renderTopbar("Analytics", "Local trends from your check-ins.")}
@@ -1066,24 +1123,29 @@ function renderProgress() {
         <p class="subtle" style="margin-top:10px">Target pace: slow drop, roughly 0.3–0.6 kg/week. Faster is not automatically better for kumite.</p>
       </section>
       <section class="card" style="margin-top:16px">
-        <h2>Readiness + recovery</h2>
+        <h2>Karate load</h2>
         <div class="readiness-strip">
-          <div class="metric"><strong>${completed}</strong><span>Done/min 14d</span></div>
-          <div class="metric"><strong>${avgEnergy === null ? "—" : avgEnergy.toFixed(1)}</strong><span>Avg energy</span></div>
-          <div class="metric"><strong>${readiness.green}/${readiness.yellow}/${readiness.red}</strong><span>G/Y/R</span></div>
+          <div class="metric"><strong>${formatAverage(load.avgCardio)}</strong><span>Avg cardio</span></div>
+          <div class="metric"><strong>${formatAverage(load.avgStrength)}</strong><span>Avg strength</span></div>
+          <div class="metric"><strong>${load.count}</strong><span>Karate logs</span></div>
         </div>
+        <p class="subtle" style="margin-top:10px">From Monday/Friday post-karate check-ins only.</p>
       </section>
       <section class="card" style="margin-top:16px">
-        <h2>Pain trend</h2>
+        <h2>Recovery trend</h2>
         <div class="readiness-strip">
-          <div class="metric"><strong>${avgPain.toFixed(1)}</strong><span>Avg max pain</span></div>
-          <div class="metric"><strong>${latestPain.knees}</strong><span>Knees</span></div>
-          <div class="metric"><strong>${latestPain.achilles}</strong><span>Achilles</span></div>
+          <div class="metric"><strong>${formatAverage(recovery.avgSoreness)}</strong><span>Avg soreness</span></div>
+          <div class="metric"><strong>${formatAverage(recovery.avgStiffness)}</strong><span>Avg stiffness</span></div>
+          <div class="metric"><strong>${recommendationMix}</strong><span>N/R/M/P</span></div>
         </div>
-        <div class="readiness-strip" style="margin-top:8px">
-          <div class="metric"><strong>${latestPain.hips}</strong><span>Hips</span></div>
-          <div class="metric"><strong>${latestPain.lowerBack}</strong><span>Lower back</span></div>
-          <div class="metric"><strong>${painDirection(logs)}</strong><span>Direction</span></div>
+        <p class="subtle" style="margin-top:10px">${recovery.areas.length ? `Recent areas: ${recovery.areas.map(escapeHtml).join(", ")}.` : "Add recovery check-ins to see common sore areas."}</p>
+      </section>
+      <section class="card" style="margin-top:16px">
+        <h2>Readiness mix</h2>
+        <div class="readiness-strip">
+          <div class="metric"><strong>${completed}</strong><span>Done 14d</span></div>
+          <div class="metric"><strong>${readiness.green}/${readiness.yellow}/${readiness.red}</strong><span>G/Y/R</span></div>
+          <div class="metric"><strong>${logs.length}</strong><span>Total logs</span></div>
         </div>
       </section>
       <section class="card" style="margin-top:16px">

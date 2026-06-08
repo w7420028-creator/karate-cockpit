@@ -68,20 +68,21 @@ for (const token of ['Full session', 'Minimum version', 'data-start="full"', 'da
   if (todayHtml.includes(token)) throw new Error(`today should not expose session/program control ${token}`);
 }
 context.state.logs = [
-  { date: new Date().toISOString(), type: 'DONE', readiness: 'GREEN', pain: { knees: 1, achilles: 2, hips: 1, lowerBack: 0 }, weight: '94,0', energy: 0, note: 'test' },
-  { date: new Date(Date.now() - 7*864e5).toISOString(), type: 'MINIMUM', readiness: 'YELLOW', pain: { knees: 2, achilles: 2, hips: 1, lowerBack: 1 }, weight: '94.7', energy: 5, note: 'test' }
+  { date: new Date().toISOString(), card: 'monday-karate', type: 'DONE', readiness: 'GREEN', pain: { knees: 1, achilles: 2, hips: 1, lowerBack: 0 }, weight: '94,0', energy: 0, trainingLoad: { cardio: 8, strength: 6 }, note: 'test' },
+  { date: new Date(Date.now() - 7*864e5).toISOString(), card: 'tuesday-recovery', type: 'DONE', readiness: 'YELLOW', pain: { knees: 2, achilles: 2, hips: 1, lowerBack: 1 }, weight: '94.7', energy: 5, recovery: { areas: ['hips'], soreness: 5, stiffness: 4, recommendation: 'mobility' }, note: 'test' }
 ];
 if (context.weightTrend(context.state.logs).latest !== '94.0') throw new Error('weight latest failed');
-if (context.averageEnergy(context.state.logs, 7) !== 2.5) throw new Error('energy zero should count');
+if (context.karateLoadStats(context.state.logs).avgCardio !== 8) throw new Error('cardio load stat failed');
+if (context.recoveryStats(context.state.logs).avgSoreness !== 5) throw new Error('soreness stat failed');
 const progress = context.renderProgress();
-for (const token of ['Coach decision', 'Data export', 'Export JSON', 'Export CSV', 'Bodyweight', 'Pain trend', 'Readiness + recovery', 'Open charts', 'iPhone notifications', 'data-route="notifications"']) {
+for (const token of ['Coach decision', 'Data export', 'Export JSON', 'Export CSV', 'Bodyweight', 'Karate load', 'Recovery trend', 'Readiness mix', 'Open charts', 'iPhone notifications', 'data-route="notifications"']) {
   if (!progress.includes(token)) throw new Error(`progress missing ${token}`);
 }
 const insights = context.renderInsights();
-for (const token of ['Visual cockpit', 'data-chart="weight-trend"', 'data-chart="pain-trend"', 'data-chart="energy-trend"', 'data-chart="consistency"']) {
+for (const token of ['Visual cockpit', 'data-chart="weight-trend"', 'data-chart="cardio-load"', 'data-chart="strength-load"', 'data-chart="soreness-trend"', 'data-chart="stiffness-trend"', 'data-chart="consistency"']) {
   if (!insights.includes(token)) throw new Error(`insights missing ${token}`);
 }
-if (context.metricPoints(context.state.logs, log => Number(log.energy)).length !== 2) throw new Error('energy chart points missing');
+if (context.metricPoints(context.state.logs, log => log.trainingLoad?.cardio).length !== 1) throw new Error('cardio chart points missing');
 const illustratedList = context.renderList(context.CARDS[3].full, context.CARDS[3]);
 for (const token of ['diagram-shell', '<svg class="exercise-diagram" viewBox="0 0 64 64"', 'Goblet squat', 'Romanian deadlift', 'demo-link', 'Watch Goblet squat', 'youtube.com/watch?v=Xjo_fY9Hl9w']) {
   if (!illustratedList.includes(token)) throw new Error(`exercise illustration/demo missing ${token}`);
@@ -98,7 +99,7 @@ for (const token of ['One-time iPhone push setup', 'IOS_PUSH_SUBSCRIPTION', 'No 
 if (context.urlBase64ToUint8Array(context.VAPID_PUBLIC_KEY).length !== 65) throw new Error('VAPID public key should decode to a P-256 public key');
 
 const swSource = fs.readFileSync('sw.js', 'utf8');
-for (const token of ['karate-cockpit-v15', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
+for (const token of ['karate-cockpit-v16', 'addEventListener("push"', 'showNotification', 'notificationclick', 'openOrFocusClient']) {
   if (!swSource.includes(token)) throw new Error(`service worker push coverage missing ${token}`);
 }
 context.state.logs = [context.state.logs[0]];

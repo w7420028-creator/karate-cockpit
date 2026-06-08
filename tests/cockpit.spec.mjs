@@ -104,7 +104,7 @@ test.describe('Karate Cockpit V1', () => {
     expect(state.logs[0].sleepHours).toBe('7.4');
   });
 
-  test('Progress analytics tracks weight, pain, energy, readiness and coach decision', async ({ page }) => {
+  test('Progress analytics tracks weight, karate load, recovery and coach decision', async ({ page }) => {
     await setAppDate(page, '2026-06-07T20:30:00+02:00');
     await seedState(page, {
       readiness: 'GREEN',
@@ -114,8 +114,10 @@ test.describe('Karate Cockpit V1', () => {
       energy: 7,
       note: '',
       logs: [
-        { id: '1', date: '2026-06-07T18:30:00+02:00', card: 'sunday-review', type: 'DONE', readiness: 'GREEN', pain: { knees: 1, achilles: 2, hips: 1, lowerBack: 0 }, weight: '93.8', energy: 7, note: 'kizami' },
-        { id: '2', date: '2026-05-31T18:30:00+02:00', card: 'sunday-review', type: 'DONE', readiness: 'YELLOW', pain: { knees: 2, achilles: 3, hips: 1, lowerBack: 1 }, weight: '94,5', energy: 5, note: 'distance' }
+        { id: '1', date: '2026-06-06T08:30:00+02:00', card: 'saturday-optional', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '', energy: 0, recovery: { areas: ['calves/Achilles'], soreness: 3, stiffness: 2, recommendation: 'normal' }, note: 'loose legs' },
+        { id: '2', date: '2026-06-02T08:00:00+02:00', card: 'tuesday-recovery', type: 'DONE', readiness: 'YELLOW', pain: defaultPain, weight: '', energy: 0, recovery: { areas: ['hips'], soreness: 5, stiffness: 4, recommendation: 'mobility' }, note: 'hips tight' },
+        { id: '3', date: '2026-06-01T21:00:00+02:00', card: 'monday-karate', type: 'DONE', readiness: 'GREEN', pain: defaultPain, weight: '93.8', energy: 0, trainingLoad: { cardio: 8, strength: 6 }, note: 'kizami' },
+        { id: '4', date: '2026-05-31T18:30:00+02:00', card: 'sunday-review', type: 'DONE', readiness: 'YELLOW', pain: { knees: 2, achilles: 3, hips: 1, lowerBack: 1 }, weight: '94,5', energy: 5, note: 'distance' }
       ]
     });
     await page.goto('/');
@@ -125,17 +127,25 @@ test.describe('Karate Cockpit V1', () => {
     await expect(page.getByText('Coach decision')).toBeVisible();
     await expect(page.getByText('93.8', { exact: true })).toBeVisible();
     await expect(page.getByText('-0.7 kg')).toBeVisible();
-    await expect(page.getByText('Avg energy')).toBeVisible();
-    await expect(page.getByText('Pain trend')).toBeVisible();
-    await expect(page.locator('.timeline .log-row').first()).toContainText('kizami');
+    await expect(page.getByRole('heading', { name: 'Karate load' })).toBeVisible();
+    await expect(page.getByText('Avg cardio')).toBeVisible();
+    await expect(page.getByText('Avg strength')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Recovery trend' })).toBeVisible();
+    await expect(page.getByText('Avg soreness')).toBeVisible();
+    await expect(page.getByText('Avg stiffness')).toBeVisible();
+    await expect(page.getByText('Pain trend')).toHaveCount(0);
+    await expect(page.getByText('Avg energy')).toHaveCount(0);
+    await expect(page.locator('.timeline .log-row').first()).toContainText('loose legs');
 
     await page.getByRole('button', { name: 'Open charts' }).tap();
     await expect(page.getByRole('heading', { name: 'Insights' })).toBeVisible();
     await expect(page.locator('[data-chart="weight-trend"]')).toContainText('93.8 kg');
-    await expect(page.locator('[data-chart="pain-trend"] svg[aria-label*="2 datapoints"]')).toBeVisible();
-    await expect(page.locator('[data-chart="energy-trend"]')).toContainText('7 /10');
-    await expect(page.locator('[data-chart="consistency"]')).toContainText('2/14');
-    await expect(page.locator('[data-chart="readiness"]')).toContainText('1/1/0');
+    await expect(page.locator('[data-chart="cardio-load"]')).toContainText('8 /10');
+    await expect(page.locator('[data-chart="strength-load"]')).toContainText('6 /10');
+    await expect(page.locator('[data-chart="soreness-trend"] svg[aria-label*="2 datapoints"]')).toBeVisible();
+    await expect(page.locator('[data-chart="stiffness-trend"]')).toContainText('2 /10');
+    await expect(page.locator('[data-chart="consistency"]')).toContainText('4/14');
+    await expect(page.locator('[data-chart="readiness"]')).toContainText('2/2/0');
   });
 
   test('logging keeps more than 180 historical entries and preserves existing state', async ({ page }) => {
@@ -203,8 +213,9 @@ test.describe('Karate Cockpit V1', () => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Progress' }).tap();
 
+    const exportCard = page.locator('.export-card');
     await expect(page.getByRole('heading', { name: 'Data export' })).toBeVisible();
-    await expect(page.getByText('Total logs')).toBeVisible();
+    await expect(exportCard.getByText('Total logs')).toBeVisible();
 
     await expect(page.getByRole('button', { name: 'Export JSON' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Export CSV' })).toBeEnabled();
@@ -229,7 +240,7 @@ test.describe('Karate Cockpit V1', () => {
       energy: 6,
       note: '',
       logs: [
-        { id: 'single', date: '2026-06-01T07:45:00+02:00', card: 'monday-karate', type: 'DONE', readiness: 'GREEN', pain: { knees: 1, achilles: 1, hips: 0, lowerBack: 0 }, weight: '94.0', energy: 6, note: 'sharp' }
+        { id: 'single', date: '2026-06-01T07:45:00+02:00', card: 'monday-karate', type: 'DONE', readiness: 'GREEN', pain: { knees: 1, achilles: 1, hips: 0, lowerBack: 0 }, weight: '94.0', energy: 6, trainingLoad: { cardio: 8, strength: 5 }, note: 'sharp' }
       ]
     });
     await page.goto('/');
@@ -238,7 +249,7 @@ test.describe('Karate Cockpit V1', () => {
 
     await expect(page.locator('[data-chart="weight-trend"]')).toContainText('First marker');
     await expect(page.locator('[data-chart="weight-trend"] svg[aria-label*="1 datapoint"]')).toBeVisible();
-    await expect(page.locator('[data-chart="pain-trend"]')).toContainText('1 /10');
+    await expect(page.locator('[data-chart="cardio-load"]')).toContainText('8 /10');
     await expect(page.locator('[data-chart="consistency"]')).toContainText('1/14');
   });
 
@@ -329,8 +340,8 @@ test.describe('Karate Cockpit V1', () => {
     expect(state.logs[0].skipReason).toEqual({ category: 'holiday', text: 'Feiertag' });
 
     await page.getByRole('button', { name: 'Progress' }).tap();
-    await expect(page.getByText('Data export')).toBeVisible();
-    await expect(page.getByText('182')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Data export' })).toBeVisible();
+    await expect(page.locator('.export-card .metric').first()).toContainText('182');
     await expect(page.getByRole('button', { name: 'Export JSON' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Export CSV' })).toBeEnabled();
 
